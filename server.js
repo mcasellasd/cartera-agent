@@ -677,7 +677,7 @@ function netejaBanda(band) {
   return { min: Math.round(min * 10) / 10, max: Math.round(max * 10) / 10 };
 }
 
-function normalitzaConsell(raw, cartera, exposure) {
+function normalitzaConsell(raw, cartera, exposure, capital) {
   if (!raw || !Array.isArray(raw.summary) || !raw.summary.length || !Array.isArray(raw.recommendations) || !raw.recommendations.length || !raw.plan || !Array.isArray(raw.markets)) {
     throw new Error('L’informe de consell no té l’estructura esperada.');
   }
@@ -732,6 +732,7 @@ function normalitzaConsell(raw, cartera, exposure) {
   return {
     generatedAt: new Date().toISOString(),
     portfolioAsOf: cartera.meta?.actualitzat || null,
+    capital,
     methodology: {
       strategicHorizon: '5-10 anys',
       tacticalHorizon: '6-12 mesos',
@@ -750,7 +751,17 @@ async function generaConsellMercats() {
   }
 
   const cartera = await carregaCartera();
-  const exposure = calculaExposicioConsell(cartera.posicions, cartera.meta?.cashValue);
+  const cashValue = Number(cartera.meta?.cashValue) || 0;
+  const investedValue = (cartera.posicions || []).reduce((sum, position) => sum + (Number(position.valueTotal) || 0), 0);
+  const totalValue = investedValue + cashValue;
+  const capital = {
+    investedValue: Math.round(investedValue * 100) / 100,
+    cashValue: Math.round(cashValue * 100) / 100,
+    totalValue: Math.round(totalValue * 100) / 100,
+    cashPct: totalValue ? Math.round((cashValue / totalValue) * 1000) / 10 : 0,
+    positionsCount: (cartera.posicions || []).length
+  };
+  const exposure = calculaExposicioConsell(cartera.posicions, cashValue);
   const portfolio = (cartera.posicions || []).map(position => ({
     ticker: position.ticker,
     name: position.name,
@@ -800,6 +811,16 @@ async function generaConsellMercats() {
     'Exposició actual calculada a partir de la cartera i de les exposicions subjacents documentades:',
     JSON.stringify(exposure, null, 2),
     '',
+    'Capital i liquiditat actuals (imports en euros; no els infereixis de les exposicions):',
+    JSON.stringify(capital, null, 2),
+    '',
+    'Regles de realisme financer:',
+    '- No proposis cap ús d’efectiu superior al cashValue disponible.',
+    '- Distingeix sempre entre reequilibri intern, ús de l’efectiu actual i aportació de capital nou.',
+    '- Si una proposta exigeix vendre una posició, indica que l’import es finança amb aquesta venda i no el comptis també com a ús d’efectiu.',
+    '- No assumeixis que cal invertir tot l’efectiu: preserva una reserva coherent amb el perfil i l’horitzó quan no hi hagi informació suficient.',
+    '- Dona imports només quan estiguin justificats pel capital total i la liquiditat; si no, expressa la proposta en percentatges o com a pas d’anàlisi.',
+    '',
     'Cartera i hipòtesis disponibles:',
     JSON.stringify(portfolio, null, 2)
   ].join('\n');
@@ -834,7 +855,7 @@ async function generaConsellMercats() {
   } catch {
     throw new Error('El proveïdor del consell no ha retornat JSON vàlid.');
   }
-  return normalitzaConsell(raw, cartera, exposure);
+  return normalitzaConsell(raw, cartera, exposure, capital);
 }
 
 function preparaHistorial(messages) {

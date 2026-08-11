@@ -445,7 +445,9 @@ body.chat-open #chat{transform:none}
   <div class="kpis">
     <div class="kpi"><div class="lab">Posicions</div><div class="val" id="k1">—</div></div>
     <div class="kpi"><div class="lab">Cost total invertit</div><div class="val" id="k_cost">—</div></div>
-    <div class="kpi"><div class="lab">Valor actual</div><div class="val" id="k_val">—</div></div>
+    <div class="kpi"><div class="lab">Valor invertit actual</div><div class="val" id="k_val">—</div></div>
+    <div class="kpi"><div class="lab">Efectiu disponible</div><div class="val" id="k_cash">—</div></div>
+    <div class="kpi"><div class="lab">Patrimoni total</div><div class="val" id="k_total">—</div></div>
     <div class="kpi"><div class="lab">Guany / Pèrdua (€)</div><div class="val" id="k_pnl">—</div></div>
     <div class="kpi"><div class="lab">Guany / Pèrdua (%)</div><div class="val" id="k_pnlp">—</div></div>
     <div class="kpi" id="k_day_card"><div class="lab">ETF · avui</div><div class="val" id="k_day">—</div><div class="pct" id="k_dayp">—</div></div>
@@ -798,7 +800,11 @@ function renderConsell(data) {
   consellData=data;
   const status=document.getElementById('advice-status');
   status.textContent='Generat '+formatNewsDate(data.generatedAt)+' · cartera actualitzada '+formatData((data.portfolioAsOf || '').slice(0,10));
-  const summary='<div class="advice-summary">'+data.summary.map(item=>'<div>'+esc(item)+'</div>').join('')+'</div>';
+  const capital=data.capital || {};
+  const capitalBlock=Number.isFinite(Number(capital.totalValue))
+    ? '<div class="advice-summary advice-capital"><div><strong>Capital actual</strong>: patrimoni total '+esc(f(Number(capital.totalValue),0))+' € · invertit '+esc(f(Number(capital.investedValue),0))+' € · efectiu '+esc(f(Number(capital.cashValue),0))+' € ('+esc(Number(capital.cashPct).toFixed(1))+'%).</div></div>'
+    : '';
+  const summary=capitalBlock+'<div class="advice-summary">'+data.summary.map(item=>'<div>'+esc(item)+'</div>').join('')+'</div>';
   const recommendations='<section class="advice-recommendations">'+data.recommendations.map((item,index)=>
     '<article class="advice-recommendation priority-'+esc(item.priority)+'">'+
       '<div class="advice-recommendation-head"><span class="advice-priority">'+esc(prioritatConsell(item.priority))+'</span></div>'+
@@ -1026,7 +1032,7 @@ function portfolioScenario(positions){
   };
 }
 
-function renderScenarioMethod(portfolio, visible, totalValue){
+function renderScenarioMethod(portfolio, visible, investedValue, totalValue){
   const meta=P?.meta?.scenarios;
   const body=document.getElementById("scenario-method-body");
   if(!meta){body.textContent="Metodologia no disponible.";return;}
@@ -1034,8 +1040,8 @@ function renderScenarioMethod(portfolio, visible, totalValue){
     `<li><a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.title)}</a>: ${esc(source.use)}</li>`
   ).join("");
   const moneyImpact=value=>{
-    if(!Number.isFinite(value)||!totalValue) return "—";
-    const euros=totalValue*value/100;
+    if(!Number.isFinite(value)||!investedValue) return "—";
+    const euros=investedValue*value/100;
     return `${euros>=0?"+":""}${f(euros,0)} €`;
   };
   const lowConfidenceValue=(visible||[])
@@ -1135,8 +1141,10 @@ function render(){
   // KPIs financers reals
   const allD = r;
   const totalCost = allD.reduce((s,d)=>s+(d.costTotal||0),0);
-  const totalVal  = allD.reduce((s,d)=>s+(d.valueTotal||0),0);
-  const totalPnl  = totalVal - totalCost;
+  const investedVal = allD.reduce((s,d)=>s+(d.valueTotal||0),0);
+  const cashValue = Number(P?.meta?.cashValue) || 0;
+  const totalVal = investedVal + cashValue;
+  const totalPnl  = investedVal - totalCost;
   const totalPnlPct = totalCost ? totalPnl/totalCost*100 : 0;
   const periodSummary=(type,cardId,valueId,pctId)=>{
     const positions=allD.filter(d=>d.type===type&&d.periodChangeValue!=null&&d.periodChangePct!=null);
@@ -1156,7 +1164,9 @@ function render(){
     pctEl.className='pct '+(changePct!=null?cls(changePct):'');
   };
   document.getElementById("k_cost").textContent = f(totalCost,0)+' €';
-  const kVal=document.getElementById("k_val"); kVal.textContent=f(totalVal,0)+' €'; kVal.className='val '+cls(totalPnl);
+  const kVal=document.getElementById("k_val"); kVal.textContent=f(investedVal,0)+' €'; kVal.className='val '+cls(totalPnl);
+  document.getElementById("k_cash").textContent=f(cashValue,0)+' €';
+  document.getElementById("k_total").textContent=f(totalVal,0)+' €';
   const kPnl=document.getElementById("k_pnl"); kPnl.textContent=(totalPnl>=0?'+':'')+f(totalPnl,0)+' €'; kPnl.className='val '+cls(totalPnl);
   const kPnlp=document.getElementById("k_pnlp"); kPnlp.textContent=(totalPnlPct>=0?'+':'')+totalPnlPct.toFixed(2)+'%'; kPnlp.className='val '+cls(totalPnl);
   periodSummary('ETF','k_day_card','k_day','k_dayp');
@@ -1170,9 +1180,9 @@ function render(){
     el.textContent=value!=null?pc(value):"—";
     el.className="val "+(value!=null?cls(value):"");
     const euroEl=document.getElementById(id+"e");
-    const euroImpact=value!=null?totalVal*value/100:null;
+    const euroImpact=value!=null?investedVal*value/100:null;
     euroEl.textContent=euroImpact!=null
-      ? `${euroImpact>=0?"+":""}${f(euroImpact,0)} € sobre el valor actual`
+      ? `${euroImpact>=0?"+":""}${f(euroImpact,0)} € sobre el valor invertit`
       : "—";
     euroEl.className="pct "+(euroImpact!=null?cls(euroImpact):"");
   };
@@ -1184,7 +1194,7 @@ function render(){
   method.querySelector("summary").textContent=portfolio
     ? `Com llegir aquests escenaris · ${portfolio.volatility.toFixed(1)}% d'oscil·lació anual estimada · ${portfolio.coverage.toFixed(0)}% cobert`
     : "Com llegir aquests escenaris";
-  renderScenarioMethod(portfolio,r,totalVal);
+  renderScenarioMethod(portfolio,r,investedVal,totalVal);
   document.getElementById("k5").textContent=terWeighted!=null?terWeighted.toFixed(2)+"%":"—";
   renderRankings(r);
   chart(r); sim(r);
@@ -1804,10 +1814,20 @@ function nextWiz() {
 
 function calculateProposal() {
   const body = document.getElementById("wiz-body");
-  const totalVal = D.reduce((s,d)=>s+(d.valueTotal||0),0)||1;
+  const investedVal = D.reduce((s,d)=>s+(d.valueTotal||0),0);
+  const cashValue = Number(P?.meta?.cashValue) || 0;
+  const totalVal = investedVal + cashValue || 1;
 
   const target = {};
   D.forEach(d => target[d.ticker] = 0);
+
+  const cashReserve = {
+    curt: { conservador: 35, moderat: 25, agressiu: 15 },
+    mig: { conservador: 25, moderat: 15, agressiu: 10 },
+    llarg: { conservador: 20, moderat: 10, agressiu: 5 }
+  };
+  const cashTargetPct = cashReserve[wizAnswers.horizon]?.[wizAnswers.risk] ?? 10;
+  const cashTargetValue = totalVal * cashTargetPct / 100;
 
   // 1. Renda fixa (CREAND RF)
   let rf = 0;
@@ -1907,6 +1927,11 @@ function calculateProposal() {
     }
   }
 
+  target.CASH = cashTargetPct;
+  Object.keys(target).forEach(ticker => {
+    if (ticker !== 'CASH') target[ticker] *= (100 - cashTargetPct) / 100;
+  });
+
   // Normalitzar
   let sumProposed = Object.values(target).reduce((s,x)=>s+x,0)||1;
   for (let k in target) {
@@ -1915,7 +1940,8 @@ function calculateProposal() {
 
   let html = `
     <p style="font-size:12.5px;color:var(--dim);margin:0 0 14px;line-height:1.5">
-      Comparativa detallada de l'assignació real de mercat actual amb els teus objectius suggerits:
+      Patrimoni total: <b style="color:var(--txt)">${f(totalVal,0)} €</b> · invertit: <b style="color:var(--txt)">${f(investedVal,0)} €</b> · efectiu: <b style="color:var(--txt)">${f(cashValue,0)} €</b>.
+      La proposta manté una reserva orientativa del <b style="color:var(--txt)">${cashTargetPct.toFixed(0)}%</b> (${f(cashTargetValue,0)} €); no assumeix invertir tota la liquiditat.
     </p>
     <div class="table-wrap">
       <table style="font-size:12.5px;margin-bottom:18px">
@@ -1945,6 +1971,19 @@ function calculateProposal() {
         </td>
       </tr>`;
   });
+
+  const cashActPct = (cashValue / totalVal) * 100;
+  const cashDiffPct = cashTargetPct - cashActPct;
+  const cashDiffVal = totalVal * (cashDiffPct / 100);
+  html += `
+      <tr>
+        <td style="text-align:left"><b>Efectiu</b> <span class="tag">Liquiditat</span></td>
+        <td>${cashActPct.toFixed(1)}%</td>
+        <td>${cashTargetPct.toFixed(1)}%</td>
+        <td class="${cashDiffPct>=0.5?'pos':(cashDiffPct<=-0.5?'neg':'')}">
+          ${cashDiffPct>=0?'+':''}${cashDiffPct.toFixed(1)}% (${cashDiffVal>=0?'+':''}${f(cashDiffVal,0)} €)
+        </td>
+      </tr>`;
 
   html += `</tbody></table></div>`;
 
@@ -1978,16 +2017,35 @@ function calculateProposal() {
     });
   }
 
-  D.filter(d => d.type==='ETF').forEach(d => {
+  const etfDiffs = D.filter(d => d.type==='ETF').map(d => {
     const actPct = ((d.valueTotal||0)/totalVal)*100;
     const propPct = target[d.ticker]||0;
-    const diffVal = totalVal * ((propPct - actPct)/100);
-    if (diffVal < -1000) {
-      html += `<li>⚠️ <b style="color:var(--txt)">Venda d'ETF (tributable)</b>: ven <b>${f(Math.abs(diffVal),0)} €</b> de <span class="tag etf">${d.ticker}</span>. Això generarà guanys/pèrdues patrimonials en IRPF.</li>`;
-    } else if (diffVal > 1000) {
-      html += `<li>🛒 <b style="color:var(--txt)">Compra d'ETF</b>: compra <b>${f(diffVal,0)} €</b> de <span class="tag etf">${d.ticker}</span> per assolir el pes objectiu.</li>`;
+    return { ticker: d.ticker, diffVal: totalVal * ((propPct - actPct)/100) };
+  });
+  const etfSalesValue = etfDiffs.filter(x => x.diffVal < -1000).reduce((sum,x)=>sum+Math.abs(x.diffVal),0);
+  let etfFunding = Math.max(0, cashValue - cashTargetValue) + etfSalesValue;
+  etfDiffs.forEach(x => {
+    if (x.diffVal < -1000) {
+      html += `<li>⚠️ <b style="color:var(--txt)">Venda d’ETF (tributable)</b>: ven <b>${f(Math.abs(x.diffVal),0)} €</b> de <span class="tag etf">${x.ticker}</span>. Això generarà guanys/pèrdues patrimonials en IRPF.</li>`;
     }
   });
+  etfDiffs.forEach(x => {
+    if (x.diffVal > 1000) {
+      const executable = Math.min(x.diffVal, etfFunding);
+      if (executable > 1000) {
+        html += `<li>🛒 <b style="color:var(--txt)">Compra d’ETF</b>: compra fins a <b>${f(executable,0)} €</b> de <span class="tag etf">${x.ticker}</span>. Es finança amb liquiditat desplegable o amb les vendes d’ETF indicades.</li>`;
+        etfFunding -= executable;
+      }
+      if (x.diffVal - executable > 1000) {
+        html += `<li>⏸️ <b style="color:var(--txt)">Compra ajornada</b>: falten <b>${f(x.diffVal - executable,0)} €</b> per assolir el pes objectiu de <span class="tag etf">${x.ticker}</span>; no es compta com a capital disponible avui.</li>`;
+      }
+    }
+  });
+  if (cashDiffVal < -1000) {
+    html += `<li>💧 <b style="color:var(--txt)">Ús màxim orientatiu de liquiditat</b>: es podrien desplegar fins a <b>${f(Math.abs(cashDiffVal),0)} €</b> sense baixar de la reserva del ${cashTargetPct.toFixed(0)}%. No cal invertir-ho tot en una sola data.</li>`;
+  } else if (cashDiffVal > 1000) {
+    html += `<li>🛡️ <b style="color:var(--txt)">Reserva a mantenir</b>: conserva o incrementa l’efectiu en aproximadament <b>${f(cashDiffVal,0)} €</b> per arribar a la reserva orientativa del ${cashTargetPct.toFixed(0)}%.</li>`;
+  }
 
   html += `</ul>`;
 
@@ -2222,6 +2280,9 @@ function inline(t){
 function estatActual(){
   const visible=rows();
   const total=visible.reduce((sum,position)=>sum+(position.valueTotal||0),0);
+  const investedValue=D.reduce((sum,position)=>sum+(position.valueTotal||0),0);
+  const cashValue=Number(P?.meta?.cashValue)||0;
+  const totalValue=investedValue+cashValue;
   const filters=[];
   const category=document.getElementById("cat").value;
   const type=document.getElementById("typ").value;
@@ -2230,13 +2291,23 @@ function estatActual(){
   if(type) filters.push(`Tipus: ${type}`);
   if(query) filters.push(`Cerca: ${query}`);
   if(!filters.length) filters.push("Tota la cartera");
+  const pesos=Object.fromEntries(visible.map(position=>[
+    position.ticker,
+    total ? Number(((position.valueTotal||0)/total*100).toFixed(2)) : 0
+  ]));
+  if(filters.length===1 && filters[0]==="Tota la cartera") {
+    Object.assign(pesos, { Efectiu: totalValue ? Number((cashValue/totalValue*100).toFixed(2)) : 0 });
+  }
   return {
     horitzo:HZ[hz],
     filtres:filters,
-    pesos:Object.fromEntries(visible.map(position=>[
-      position.ticker,
-      total ? Number(((position.valueTotal||0)/total*100).toFixed(2)) : 0
-    ]))
+    capital: {
+      invertit: Number(investedValue.toFixed(2)),
+      efectiu: Number(cashValue.toFixed(2)),
+      patrimoniTotal: Number(totalValue.toFixed(2)),
+      efectiuPct: totalValue ? Number((cashValue/totalValue*100).toFixed(2)) : 0
+    },
+    pesos
   };
 }
 
