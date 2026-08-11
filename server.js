@@ -309,14 +309,37 @@ const ADVICE_MARKETS = [
 const ADVICE_RESPONSE_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['summary', 'markets'],
+  required: ['summary', 'recommendations', 'plan', 'markets'],
   properties: {
     summary: { type: 'array', minItems: 1, maxItems: 5, items: { type: 'string' } },
+    recommendations: {
+      type: 'array', minItems: 1, maxItems: 5,
+      items: {
+        type: 'object', additionalProperties: false,
+        required: ['priority', 'title', 'rationale', 'firstStep', 'fiscalNote'],
+        properties: {
+          priority: { type: 'string', enum: ['alta', 'mitjana', 'baixa'] },
+          title: { type: 'string' },
+          rationale: { type: 'string' },
+          firstStep: { type: 'string' },
+          fiscalNote: { type: 'string' }
+        }
+      }
+    },
+    plan: {
+      type: 'object', additionalProperties: false,
+      required: ['now', 'nextReview', 'triggers'],
+      properties: {
+        now: { type: 'array', minItems: 1, maxItems: 5, items: { type: 'string' } },
+        nextReview: { type: 'string' },
+        triggers: { type: 'array', minItems: 1, maxItems: 5, items: { type: 'string' } }
+      }
+    },
     markets: {
       type: 'array', minItems: ADVICE_MARKETS.length, maxItems: ADVICE_MARKETS.length,
       items: {
         type: 'object', additionalProperties: false,
-        required: ['id', 'label', 'strategicView', 'tacticalView', 'confidence', 'suggestedBandPct', 'thesis', 'catalysts', 'risks', 'invalidators', 'sources'],
+        required: ['id', 'label', 'strategicView', 'tacticalView', 'confidence', 'suggestedBandPct', 'thesis', 'catalysts', 'risks', 'invalidators', 'recommendation', 'nextSteps', 'reviewSignals', 'reviewHorizon', 'sources'],
         properties: {
           id: { type: 'string', enum: ADVICE_MARKETS.map(m => m.id) },
           label: { type: 'string' },
@@ -336,6 +359,10 @@ const ADVICE_RESPONSE_SCHEMA = {
           catalysts: { type: 'array', maxItems: 4, items: { type: 'string' } },
           risks: { type: 'array', maxItems: 4, items: { type: 'string' } },
           invalidators: { type: 'array', maxItems: 4, items: { type: 'string' } },
+          recommendation: { type: 'string' },
+          nextSteps: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string' } },
+          reviewSignals: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string' } },
+          reviewHorizon: { type: 'string' },
           sources: {
             type: 'array', minItems: 1, maxItems: 6,
             items: {
@@ -644,8 +671,26 @@ function netejaBanda(band) {
 }
 
 function normalitzaConsell(raw, cartera, exposure) {
-  if (!raw || !Array.isArray(raw.summary) || !raw.summary.length || !Array.isArray(raw.markets)) {
+  if (!raw || !Array.isArray(raw.summary) || !raw.summary.length || !Array.isArray(raw.recommendations) || !raw.recommendations.length || !raw.plan || !Array.isArray(raw.markets)) {
     throw new Error('L’informe de consell no té l’estructura esperada.');
+  }
+
+  const recommendations = raw.recommendations.map(item => ({
+    priority: item.priority,
+    title: String(item.title || '').trim(),
+    rationale: String(item.rationale || '').trim(),
+    firstStep: String(item.firstStep || '').trim(),
+    fiscalNote: String(item.fiscalNote || '').trim()
+  })).filter(item => item.title && item.rationale && item.firstStep);
+  if (!recommendations.length) throw new Error('L’informe de consell no té recomanacions vàlides.');
+
+  const plan = {
+    now: raw.plan.now.map(String).map(item => item.trim()).filter(Boolean).slice(0, 5),
+    nextReview: String(raw.plan.nextReview || '').trim(),
+    triggers: raw.plan.triggers.map(String).map(item => item.trim()).filter(Boolean).slice(0, 5)
+  };
+  if (!plan.now.length || !plan.nextReview || !plan.triggers.length) {
+    throw new Error('L’informe de consell no té un pla de seguiment vàlid.');
   }
 
   const byId = new Map(raw.markets.map(market => [market.id, market]));
@@ -669,6 +714,10 @@ function normalitzaConsell(raw, cartera, exposure) {
       catalysts: Array.isArray(market.catalysts) ? market.catalysts.map(String).slice(0, 4) : [],
       risks: Array.isArray(market.risks) ? market.risks.map(String).slice(0, 4) : [],
       invalidators: Array.isArray(market.invalidators) ? market.invalidators.map(String).slice(0, 4) : [],
+      recommendation: String(market.recommendation || '').trim(),
+      nextSteps: Array.isArray(market.nextSteps) ? market.nextSteps.map(String).map(item => item.trim()).filter(Boolean).slice(0, 3) : [],
+      reviewSignals: Array.isArray(market.reviewSignals) ? market.reviewSignals.map(String).map(item => item.trim()).filter(Boolean).slice(0, 3) : [],
+      reviewHorizon: String(market.reviewHorizon || '').trim(),
       sources
     };
   });
@@ -682,6 +731,8 @@ function normalitzaConsell(raw, cartera, exposure) {
       framework: ['fonamental', 'valoració', 'cicle']
     },
     summary: raw.summary.map(String).map(item => item.trim()).filter(Boolean).slice(0, 5),
+    recommendations,
+    plan,
     markets
   };
 }
@@ -721,10 +772,17 @@ async function generaConsellMercats() {
     'Per a cada mercat:',
     '- Dona una tesi curta però concreta.',
     '- Inclou catalitzadors, riscos i què invalidaria la conclusió.',
+    '- Escriu una recomanació prudent i accionable, sense ordres de compra, venda o traspàs.',
+    '- Dona entre un i tres passos següents, un horitzó de revisió i els senyals que farien revisar la tesi.',
     '- Proposa una banda orientativa d’exposició només si les dades ho permeten; no donis un pes objectiu exacte ni una ordre de compra o venda.',
     '- Si no pots justificar una dada, usa insuficient i posa suggestedBandPct a null.',
     '- Consulta el web per a les dades actuals. Les fonts han de ser enllaços reals consultats, amb títol i data; no inventis URLs.',
     '- No retornis text fora del JSON requerit.',
+    '',
+    'A nivell de cartera:',
+    '- Resumeix entre una i cinc recomanacions prioritzades. Cada recomanació ha d’explicar el motiu, el primer pas que convé estudiar i la cautela fiscal corresponent.',
+    '- Proposa un pla de seguiment amb prioritats immediates, una data o horitzó de revisió i senyals observables que activarien una nova revisió.',
+    '- Les recomanacions són opcions per analitzar, no instruccions personalitzades ni ordres d’execució.',
     '',
     'Fonts prioritàries proporcionades per l’usuari. Prioritza-les quan siguin pertinents i contrasta-les segons la naturalesa de la dada:',
     sourceList,
