@@ -9,6 +9,7 @@ const TABS = {
   ldm: { name: 'RESUM BROKER LDM', range: 'A1:M25' },
   xcb: { name: 'RESUM BROKER XCB', range: 'A1:M12' },
   fons: { name: 'RESUM FONS ANDORRA', range: 'A1:M10' },
+  fixedIncome: { name: 'RENTA FIXA', range: 'A1:N10' },
   cash: { name: 'TR.REPLUBIC:LDM', range: 'H133' },
   transactions: { name: 'TR.REPLUBIC:LDM', range: 'A1:M180' },
   historicalFixedIncome: { name: 'Hoja1', range: 'BK1:CF16' }
@@ -215,6 +216,33 @@ function fundPosition(row) {
   };
 }
 
+function fixedIncomePosition(row) {
+  const isin = normalizeName(value(row, 1));
+  const originalName = normalizeName(value(row, 2));
+  if (!isin || !originalName) return null;
+
+  const asset = FUNDS[isin];
+  if (!asset || asset.cat !== 'Renda fixa') throw new Error(`Fons de renda fixa desconegut a la fulla: "${isin}"`);
+
+  return {
+    ticker: asset.ticker,
+    name: originalName,
+    isin,
+    type: 'Fons',
+    cat: asset.cat,
+    shares: finite(value(row, 3)),
+    costPrice: finite(value(row, 4)),
+    costTotal: finite(value(row, 5)),
+    price: finite(value(row, 6)),
+    valueTotal: finite(value(row, 10)),
+    periodChangePct: finite(value(row, 12)) === null ? null : finite(value(row, 12)) * 100,
+    periodChangeValue: finite(value(row, 13)),
+    periodLabel: 'Setmana',
+    periodApproximate: false,
+    cur: '€'
+  };
+}
+
 function historicalFixedIncomePosition(row, dateColumns) {
   const name = normalizeName(value(row, 20));
   const isin = normalizeName(value(row, 21));
@@ -255,10 +283,11 @@ async function loadSheetPortfolio({ force = false } = {}) {
   const now = Date.now();
   if (!force && memoryCache && now - memoryCacheAt < CACHE_MS) return memoryCache;
 
-  const [ldmRows, xcbRows, fundRows, cashRows, transactionRows, historicalFixedIncomeRows, initialInvestment] = await Promise.all([
+  const [ldmRows, xcbRows, fundRows, fixedIncomeRows, cashRows, transactionRows, historicalFixedIncomeRows, initialInvestment] = await Promise.all([
     fetchTab(TABS.ldm),
     fetchTab(TABS.xcb),
     fetchTab(TABS.fons),
+    fetchTab(TABS.fixedIncome),
     fetchTab(TABS.cash),
     fetchTab(TABS.transactions),
     fetchTab(TABS.historicalFixedIncome, HISTORICAL_SHEET_ID),
@@ -275,7 +304,8 @@ async function loadSheetPortfolio({ force = false } = {}) {
   const currentPositions = [
     ...ldmRows.map(brokerPosition),
     ...xcbRows.map(brokerPosition),
-    ...fundRows.map(fundPosition)
+    ...fundRows.map(fundPosition),
+    ...fixedIncomeRows.map(fixedIncomePosition)
   ]
     .filter(Boolean)
     .filter(position => position.type === 'ETF' || position.type === 'Fons');
