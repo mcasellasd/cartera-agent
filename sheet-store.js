@@ -187,6 +187,9 @@ function fundPosition(row) {
   const asset = FUNDS[isin];
   if (!asset) throw new Error(`Fons desconegut a la fulla: "${isin}"`);
 
+  const monthReferenceValue = finite(value(row, 8));
+  const currentValue = finite(value(row, 9));
+
   return {
     ticker: asset.ticker,
     name: originalName,
@@ -198,6 +201,13 @@ function fundPosition(row) {
     price: finite(value(row, 5)),
     costTotal: finite(value(row, 6)),
     valueTotal: finite(value(row, 9)),
+    monthChangePct: monthReferenceValue !== null && currentValue !== null
+      ? (currentValue / monthReferenceValue - 1) * 100
+      : null,
+    monthChangeValue: monthReferenceValue !== null && currentValue !== null
+      ? currentValue - monthReferenceValue
+      : null,
+    monthPeriodLabel: 'Mes fins avui',
     periodChangePct: finite(value(row, 11)) === null ? null : finite(value(row, 11)) * 100,
     periodChangeValue: finite(value(row, 12)),
     periodLabel: 'Setmana',

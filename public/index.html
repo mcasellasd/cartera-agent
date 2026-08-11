@@ -1162,8 +1162,17 @@ function render(){
   const investedVal = allD.reduce((s,d)=>s+(d.valueTotal||0),0);
   const cashValue = Number(P?.meta?.cashValue) || 0;
   const totalVal = investedVal + cashValue;
-  const totalPnl  = investedVal - totalCost;
-  const totalPnlPct = totalCost ? totalPnl/totalCost*100 : 0;
+  const fundsMonthly = selectedType === 'Fons'
+    ? allD.filter(d=>d.type==='Fons'&&d.monthChangeValue!=null&&d.monthChangePct!=null)
+    : [];
+  const monthlyPnl = fundsMonthly.reduce((s,d)=>s+d.monthChangeValue,0);
+  const monthlyPrevious = fundsMonthly.reduce((s,d)=>s+(d.valueTotal-d.monthChangeValue),0);
+  const totalPnl = selectedType === 'Fons' && fundsMonthly.length
+    ? monthlyPnl
+    : investedVal - totalCost;
+  const totalPnlPct = selectedType === 'Fons' && fundsMonthly.length
+    ? (monthlyPrevious ? monthlyPnl/monthlyPrevious*100 : 0)
+    : (totalCost ? totalPnl/totalCost*100 : 0);
   const periodSummary=(type,cardId,valueId,pctId)=>{
     const positions=allD.filter(d=>d.type===type&&d.periodChangeValue!=null&&d.periodChangePct!=null);
     const card=document.getElementById(cardId);
@@ -1186,8 +1195,12 @@ function render(){
   document.getElementById("k_val_period").textContent = `A ${asOf}`;
   document.getElementById("k_cash_period").textContent = `A ${asOf}`;
   document.getElementById("k_total_period").textContent = `A ${asOf}`;
-  document.getElementById("k_pnl_period").textContent = 'Des de compra';
-  document.getElementById("k_pnlp_period").textContent = 'Des de compra';
+  document.getElementById("k_pnl_period").textContent = selectedType === 'Fons'
+    ? 'Mes fins avui'
+    : 'Des de compra';
+  document.getElementById("k_pnlp_period").textContent = selectedType === 'Fons'
+    ? 'Mes fins avui'
+    : 'Des de compra';
   const kVal=document.getElementById("k_val"); kVal.textContent=f(investedVal,0)+' €'; kVal.className='val '+cls(totalPnl);
   document.getElementById("k_cash").textContent=f(cashValue,0)+' €';
   document.getElementById("k_total").textContent=f(totalVal,0)+' €';
