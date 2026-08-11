@@ -147,7 +147,7 @@ async function fetchHistoricalInitialInvestment() {
   const initialValue = finite(value(totalRow, 1));
   if (initialValue === null) throw new Error('El total inicial del full històric no és numèric');
   return {
-    date: '2021-12-31',
+    date: '2026-01-01',
     value: Math.round(initialValue * 100) / 100,
     source: 'CARTERAS DE FONS A 12 05 26 · Hoja1 · total CREDIT ANDORRA'
   };
