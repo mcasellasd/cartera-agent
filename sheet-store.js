@@ -141,15 +141,10 @@ async function fetchTab(tab, sheetId = SHEET_ID) {
 }
 
 async function fetchHistoricalInitialInvestment() {
-  const rows = await fetchTab({ name: 'Hoja1', range: 'A1:B32' }, HISTORICAL_SHEET_ID);
-  const totalIndex = rows.findIndex(row => String(value(row, 0) || '').trim().toUpperCase() === 'TOTAL');
-  const totalRow = totalIndex > 0 ? rows[totalIndex - 1] : null;
-  const initialValue = finite(value(totalRow, 1));
-  if (initialValue === null) throw new Error('El total inicial del full històric no és numèric');
   return {
     date: '2026-01-01',
-    value: Math.round(initialValue * 100) / 100,
-    source: 'CARTERAS DE FONS A 12 05 26 · Hoja1 · total CREDIT ANDORRA'
+    value: 915655,
+    source: 'Capital inicial facilitat per l’usuari · 01/01/26'
   };
 }
 
