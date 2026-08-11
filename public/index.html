@@ -445,8 +445,8 @@ body.chat-open #chat{transform:none}
   <div class="kpis">
     <div class="kpi"><div class="lab">Posicions</div><div class="val" id="k1">—</div><div class="pct" id="k1_period">—</div></div>
     <div class="kpi"><div class="lab" id="k_initial_label">Capital inicial · 31/12/21</div><div class="val" id="k_initial">—</div><div class="pct" id="k_initial_period">—</div></div>
-    <div class="kpi"><div class="lab">Capital invertit total</div><div class="val" id="k_cost">—</div><div class="pct" id="k_cost_period">—</div></div>
-    <div class="kpi"><div class="lab">Valor invertit actual</div><div class="val" id="k_val">—</div><div class="pct" id="k_val_period">—</div></div>
+    <div class="kpi"><div class="lab">Cost total invertit</div><div class="val" id="k_cost">—</div><div class="pct" id="k_cost_period">—</div></div>
+    <div class="kpi"><div class="lab">Valor de mercat actual</div><div class="val" id="k_val">—</div><div class="pct" id="k_val_period">—</div></div>
     <div class="kpi"><div class="lab">Efectiu disponible</div><div class="val" id="k_cash">—</div><div class="pct" id="k_cash_period">—</div></div>
     <div class="kpi"><div class="lab">Patrimoni total</div><div class="val" id="k_total">—</div><div class="pct" id="k_total_period">—</div></div>
     <div class="kpi"><div class="lab">Guany / Pèrdua (€)</div><div class="val" id="k_pnl">—</div><div class="pct" id="k_pnl_period">—</div></div>
@@ -1213,8 +1213,8 @@ function render(){
     pctEl.className='pct '+(changePct!=null?cls(changePct):'');
   };
   document.getElementById("k_cost").textContent = f(totalCost,0)+' €';
-  document.getElementById("k_cost_period").textContent = `Acumulat · actualitzat ${asOf}`;
-  document.getElementById("k_val_period").textContent = `A ${asOf}`;
+  document.getElementById("k_cost_period").textContent = `Cost acumulat · actualitzat ${asOf}`;
+  document.getElementById("k_val_period").textContent = `Valoració a ${asOf}`;
   document.getElementById("k_cash_period").textContent = `A ${asOf}`;
   document.getElementById("k_total_period").textContent = `A ${asOf}`;
   document.getElementById("k_pnl_period").textContent = selectedType === 'Fons'
