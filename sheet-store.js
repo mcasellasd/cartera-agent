@@ -9,7 +9,8 @@ const TABS = {
   ldm: { name: 'RESUM BROKER LDM', range: 'A1:M25' },
   xcb: { name: 'RESUM BROKER XCB', range: 'A1:M12' },
   fons: { name: 'RESUM FONS ANDORRA', range: 'A1:M10' },
-  cash: { name: 'TR.REPLUBIC:LDM', range: 'H133' }
+  cash: { name: 'TR.REPLUBIC:LDM', range: 'H133' },
+  transactions: { name: 'TR.REPLUBIC:LDM', range: 'A1:M180' }
 };
 
 const USD_ETFS = new Set(['BLKC', 'XAID', 'XMME', 'BRIJ', 'XDW0']);
@@ -61,6 +62,45 @@ function value(row, index) {
 function finite(valueToCheck) {
   const parsed = Number(valueToCheck);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function money(valueToCheck) {
+  if (typeof valueToCheck === 'number') return finite(valueToCheck);
+  const normalized = String(valueToCheck || '').replace(/[€\s]/g, '').replace(/\./g, '').replace(',', '.');
+  return finite(normalized);
+}
+
+function parseSheetDate(valueToCheck) {
+  const match = String(valueToCheck || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if (!match) return null;
+  const year = Number(match[3].length === 2 ? '20' + match[3] : match[3]);
+  const date = new Date(year, Number(match[2]) - 1, Number(match[1]));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function calculaCapitalInicialEtf(rows) {
+  const firstPurchases = new Map();
+  for (const row of rows) {
+    const operation = String(value(row, 2) || '').trim();
+    const date = parseSheetDate(row?.c?.[1]?.f || value(row, 1));
+    const amount = money(value(row, 5));
+    if (!date || amount === null || !/compra/i.test(operation) || !/etf/i.test(operation)) continue;
+    const key = operation.toLowerCase().replace(/^compra\s+/, '').trim();
+    const previous = firstPurchases.get(key);
+    if (!previous || date < previous.date) firstPurchases.set(key, { date, amount });
+  }
+  const purchases = [...firstPurchases.values()];
+  if (!purchases.length) return null;
+  const firstDate = new Date(Math.min(...purchases.map(item => item.date.getTime())));
+  const lastDate = new Date(Math.max(...purchases.map(item => item.date.getTime())));
+  const iso = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  return {
+    date: iso(firstDate),
+    endDate: iso(lastDate),
+    value: Math.round(purchases.reduce((sum, item) => sum + item.amount, 0) * 100) / 100,
+    purchases: purchases.length,
+    source: 'TR.REPLUBIC:LDM · primera compra de cada ETF'
+  };
 }
 
 function normalizeName(name) {
@@ -170,11 +210,12 @@ async function loadSheetPortfolio({ force = false } = {}) {
   const now = Date.now();
   if (!force && memoryCache && now - memoryCacheAt < CACHE_MS) return memoryCache;
 
-  const [ldmRows, xcbRows, fundRows, cashRows, initialInvestment] = await Promise.all([
+  const [ldmRows, xcbRows, fundRows, cashRows, transactionRows, initialInvestment] = await Promise.all([
     fetchTab(TABS.ldm),
     fetchTab(TABS.xcb),
     fetchTab(TABS.fons),
     fetchTab(TABS.cash),
+    fetchTab(TABS.transactions),
     fetchHistoricalInitialInvestment()
   ]);
 
@@ -199,6 +240,7 @@ async function loadSheetPortfolio({ force = false } = {}) {
   memoryCache = {
     positions,
     cashValue: Math.round(cashValue * 100) / 100,
+    initialInvestmentByType: { ETF: calculaCapitalInicialEtf(transactionRows) },
     syncedAt: new Date().toISOString(),
     source: 'Google Sheets'
   };
