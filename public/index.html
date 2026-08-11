@@ -445,7 +445,7 @@ body.chat-open #chat{transform:none}
   <div class="kpis">
     <div class="kpi"><div class="lab">Posicions</div><div class="val" id="k1">—</div></div>
     <div class="kpi"><div class="lab">Capital inicial · 31/12/21</div><div class="val" id="k_initial">—</div></div>
-    <div class="kpi"><div class="lab">Cost total invertit</div><div class="val" id="k_cost">—</div></div>
+    <div class="kpi"><div class="lab">Total invertit · MTD</div><div class="val" id="k_cost">—</div><div class="pct" id="k_cost_period">—</div></div>
     <div class="kpi"><div class="lab">Valor invertit actual</div><div class="val" id="k_val">—</div></div>
     <div class="kpi"><div class="lab">Efectiu disponible</div><div class="val" id="k_cash">—</div></div>
     <div class="kpi"><div class="lab">Patrimoni total</div><div class="val" id="k_total">—</div></div>
@@ -1166,7 +1166,10 @@ function render(){
     pctEl.textContent=changePct!=null?`${changePct>=0?'+':''}${changePct.toFixed(2)}% · ${positions.length} pos.`:'—';
     pctEl.className='pct '+(changePct!=null?cls(changePct):'');
   };
-  document.getElementById("k_cost").textContent = f(totalCost,0)+' €';
+  const mtdInvestment=P?.meta?.mtdInvestment || {};
+  document.getElementById("k_cost").textContent = f(Number(mtdInvestment.value)||0,0)+' €';
+  const shortDate=iso=>iso ? `${iso.slice(8,10)}/${iso.slice(5,7)}/${iso.slice(2,4)}` : '—';
+  document.getElementById("k_cost_period").textContent = `${shortDate(mtdInvestment.start)}–${shortDate(mtdInvestment.end)} · ${Number(mtdInvestment.count)||0} compres`;
   const kVal=document.getElementById("k_val"); kVal.textContent=f(investedVal,0)+' €'; kVal.className='val '+cls(totalPnl);
   document.getElementById("k_cash").textContent=f(cashValue,0)+' €';
   document.getElementById("k_total").textContent=f(totalVal,0)+' €';
