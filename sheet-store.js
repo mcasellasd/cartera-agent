@@ -169,6 +169,12 @@ async function loadSheetPortfolio({ force = false } = {}) {
     .filter(Boolean)
     .filter(position => position.type === 'ETF' || position.type === 'Fons');
 
+  const cashValue = ldmRows.reduce((sum, row) => {
+    if (normalizeName(value(row, 0))) return sum;
+    const amount = finite(value(row, 12));
+    return sum + (amount || 0);
+  }, 0);
+
   const tickers = positions.map(position => position.ticker);
   if (new Set(tickers).size !== tickers.length) {
     throw new Error('La fulla conté tickers duplicats');
@@ -176,6 +182,7 @@ async function loadSheetPortfolio({ force = false } = {}) {
 
   memoryCache = {
     positions,
+    cashValue: Math.round(cashValue * 100) / 100,
     syncedAt: new Date().toISOString(),
     source: 'Google Sheets'
   };

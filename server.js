@@ -224,6 +224,7 @@ async function carregaCartera({ force = false } = {}) {
       ...(settings.meta || {}),
       actualitzat: sheet.syncedAt,
       source: sheet.source,
+      cashValue: sheet.cashValue || 0,
       scenarios: scenarioMetadata(scenarioAssumptions)
     },
     exLabels: settings.exLabels || {},
@@ -628,10 +629,13 @@ function serialitzaEstat(estat) {
   return net ? JSON.stringify(net, null, 2) : 'No disponible';
 }
 
-function calculaExposicioConsell(posicions) {
-  const total = posicions.reduce((sum, position) => sum + (Number(position.valueTotal) || 0), 0);
+function calculaExposicioConsell(posicions, cashValue = 0) {
+  const cash = Number(cashValue) || 0;
+  const total = posicions.reduce((sum, position) => sum + (Number(position.valueTotal) || 0), cash);
   const result = Object.fromEntries(ADVICE_MARKETS.map(market => [market.id, 0]));
   if (!total) return { totalValue: 0, markets: result };
+
+  result.cash = Math.round((cash / total) * 1000) / 10;
 
   for (const position of posicions) {
     const weight = (Number(position.valueTotal) || 0) / total;
@@ -746,7 +750,7 @@ async function generaConsellMercats() {
   }
 
   const cartera = await carregaCartera();
-  const exposure = calculaExposicioConsell(cartera.posicions);
+  const exposure = calculaExposicioConsell(cartera.posicions, cartera.meta?.cashValue);
   const portfolio = (cartera.posicions || []).map(position => ({
     ticker: position.ticker,
     name: position.name,
