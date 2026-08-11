@@ -2,6 +2,7 @@
 // No necessita credencials: la protecció continua sent la del dashboard.
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || '1ZoEGd6xfuPpzpPRa1w2zGY9UstQ1vupSM2PKa88ralE';
+const HISTORICAL_SHEET_ID = process.env.HISTORICAL_SHEET_ID || '1wgEWZ9vcP6o6rZR8EKKGSOWhmmzWLpfxQfQ2hi_4L3E';
 const CACHE_MS = 60 * 1000;
 
 const TABS = {
@@ -77,13 +78,13 @@ function parseGviz(text) {
   return payload.table.rows || [];
 }
 
-async function fetchTab(tab) {
+async function fetchTab(tab, sheetId = SHEET_ID) {
   const query = new URLSearchParams({
     tqx: 'out:json',
     sheet: tab.name,
     range: tab.range
   });
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?${query}`;
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
 
@@ -97,6 +98,19 @@ async function fetchTab(tab) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function fetchHistoricalInitialInvestment() {
+  const rows = await fetchTab({ name: 'Hoja1', range: 'A1:B32' }, HISTORICAL_SHEET_ID);
+  const totalIndex = rows.findIndex(row => String(value(row, 0) || '').trim().toUpperCase() === 'TOTAL');
+  const totalRow = totalIndex > 0 ? rows[totalIndex - 1] : null;
+  const initialValue = finite(value(totalRow, 1));
+  if (initialValue === null) throw new Error('El total inicial del full històric no és numèric');
+  return {
+    date: '2021-12-31',
+    value: Math.round(initialValue * 100) / 100,
+    source: 'CARTERAS DE FONS A 12 05 26 · Hoja1 · total CREDIT ANDORRA'
+  };
 }
 
 function brokerPosition(row) {
@@ -156,11 +170,12 @@ async function loadSheetPortfolio({ force = false } = {}) {
   const now = Date.now();
   if (!force && memoryCache && now - memoryCacheAt < CACHE_MS) return memoryCache;
 
-  const [ldmRows, xcbRows, fundRows, cashRows] = await Promise.all([
+  const [ldmRows, xcbRows, fundRows, cashRows, initialInvestment] = await Promise.all([
     fetchTab(TABS.ldm),
     fetchTab(TABS.xcb),
     fetchTab(TABS.fons),
-    fetchTab(TABS.cash)
+    fetchTab(TABS.cash),
+    fetchHistoricalInitialInvestment()
   ]);
 
   const positions = [
@@ -187,6 +202,7 @@ async function loadSheetPortfolio({ force = false } = {}) {
     syncedAt: new Date().toISOString(),
     source: 'Google Sheets'
   };
+  memoryCache.initialInvestment = initialInvestment;
   memoryCacheAt = now;
   return memoryCache;
 }

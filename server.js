@@ -225,6 +225,7 @@ async function carregaCartera({ force = false } = {}) {
       actualitzat: sheet.syncedAt,
       source: sheet.source,
       cashValue: sheet.cashValue || 0,
+      initialInvestment: sheet.initialInvestment || null,
       scenarios: scenarioMetadata(scenarioAssumptions)
     },
     exLabels: settings.exLabels || {},

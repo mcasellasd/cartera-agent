@@ -444,6 +444,7 @@ body.chat-open #chat{transform:none}
   <div class="stats-title">Rendiment actual</div>
   <div class="kpis">
     <div class="kpi"><div class="lab">Posicions</div><div class="val" id="k1">—</div></div>
+    <div class="kpi"><div class="lab">Capital inicial · 31/12/21</div><div class="val" id="k_initial">—</div></div>
     <div class="kpi"><div class="lab">Cost total invertit</div><div class="val" id="k_cost">—</div></div>
     <div class="kpi"><div class="lab">Valor invertit actual</div><div class="val" id="k_val">—</div></div>
     <div class="kpi"><div class="lab">Efectiu disponible</div><div class="val" id="k_cash">—</div></div>
@@ -1137,6 +1138,8 @@ function render(){
     return weight?valid.reduce((s,d)=>s+getValue(d)*d.valueTotal,0)/weight:null;
   };
   document.getElementById("k1").textContent=r.length;
+  const initialInvestment=Number(P?.meta?.initialInvestment?.value);
+  document.getElementById("k_initial").textContent=Number.isFinite(initialInvestment)?f(initialInvestment,0)+' €':'—';
 
   // KPIs financers reals
   const allD = r;
