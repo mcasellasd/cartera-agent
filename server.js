@@ -299,7 +299,6 @@ const RESPONSES_TOOLS = [
 const ADVICE_MARKETS = [
   { id: 'us_equity', label: 'EUA', exposureKeys: ['semis', 'techus', 'euaaltres', 'eua', 'us_equity'] },
   { id: 'europe_equity', label: 'Europa', exposureKeys: ['europa', 'defensa', 'europe_equity'] },
-  { id: 'japan_developed', label: 'Japó i altres desenvolupats', exposureKeys: ['japo', 'japó', 'pacific', 'desenvolupats', 'japan_developed'] },
   { id: 'em_equity', label: 'Emergents', exposureKeys: ['emergents', 'em_equity'] },
   { id: 'global_small', label: 'Small caps globals', exposureKeys: ['smallcaps', 'small_caps', 'global_small'] },
   { id: 'eur_fixed_income', label: 'Renda fixa en euros', exposureKeys: ['rendafixa', 'fixed_income_eur', 'eur_fixed_income'] },
@@ -642,7 +641,11 @@ function calculaExposicioConsell(posicions) {
 
     for (const market of ADVICE_MARKETS) {
       const underlyingPct = market.exposureKeys.reduce((sum, key) => sum + (exposure[key] || 0), 0);
-      result[market.id] += weight * underlyingPct;
+      const isSmallCapPosition = market.id === 'global_small' &&
+        (position.scenario?.group === 'global_small' || /small\s*cap/i.test(String(position.cat || '')));
+      const hasDeclaredMarketExposure = market.exposureKeys.some(key => Object.hasOwn(exposure, key));
+      const classifiedPct = isSmallCapPosition && !hasDeclaredMarketExposure ? 100 : underlyingPct;
+      result[market.id] += weight * classifiedPct;
     }
   }
 
