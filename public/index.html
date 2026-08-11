@@ -771,7 +771,26 @@ async function carregaNoticies() {
   } catch (error) { status.textContent=error.message; grid.innerHTML='<div class="news-empty">El proveïdor de notícies no respon. Torna-ho a provar més tard.</div>'; }
 }
 
+const CONSELL_STORAGE_KEY='cartera-agent:consell:v1';
 let consellData=null, consellLoading=false;
+
+function carregaConsellLocal() {
+  try {
+    const saved=JSON.parse(localStorage.getItem(CONSELL_STORAGE_KEY) || 'null');
+    if (!saved?.data || !Array.isArray(saved.data.summary) || !Array.isArray(saved.data.recommendations) || !saved.data.plan || !Array.isArray(saved.data.markets)) return false;
+    renderConsell(saved.data,true);
+    return true;
+  } catch (_) {
+    localStorage.removeItem(CONSELL_STORAGE_KEY);
+    return false;
+  }
+}
+
+function desaConsellLocal(data) {
+  try {
+    localStorage.setItem(CONSELL_STORAGE_KEY,JSON.stringify({savedAt:new Date().toISOString(),data}));
+  } catch (_) {}
+}
 
 function etiquetaConsell(value) {
   return ({sobre:'Sobreponderar',neutral:'Neutral',sota:'Infraponderar',insuficient:'Informació insuficient'})[value] || 'No disponible';
@@ -802,10 +821,11 @@ function diagnosiBanda(market) {
   return 'Dins de la banda';
 }
 
-function renderConsell(data) {
+function renderConsell(data,fromLocal=false) {
   consellData=data;
   const status=document.getElementById('advice-status');
-  status.textContent='Generat '+formatNewsDate(data.generatedAt)+' · cartera actualitzada '+formatData((data.portfolioAsOf || '').slice(0,10));
+  status.textContent=(fromLocal?'Memòria local · darrer informe: ':'Generat ')+formatNewsDate(data.generatedAt)+' · cartera actualitzada '+formatData((data.portfolioAsOf || '').slice(0,10));
+  document.getElementById('generate-advice').textContent='Regenera informe';
   const capital=data.capital || {};
   const capitalBlock=Number.isFinite(Number(capital.totalValue))
     ? '<div class="advice-summary advice-capital"><div><strong>Capital actual</strong>: patrimoni total '+esc(f(Number(capital.totalValue),0))+' € · invertit '+esc(f(Number(capital.investedValue),0))+' € · efectiu '+esc(f(Number(capital.cashValue),0))+' € ('+esc(Number(capital.cashPct).toFixed(1))+'%).</div></div>'
@@ -913,6 +933,7 @@ async function carregaConsell() {
     const response=await apiFetch('/api/advice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({horizon:'strategic_tactical',includeCurrentExposure:true})});
     const data=await response.json().catch(()=>({}));
     if (!response.ok) throw new Error(data.error || 'No s’ha pogut generar el consell.');
+    desaConsellLocal(data);
     renderConsell(data);
   } catch(error) {
     status.textContent=error.message;
@@ -929,6 +950,7 @@ async function inicialitza() {
     return;
   }
   await carregaDades();
+  carregaConsellLocal();
   document.querySelectorAll('#tbl-pos th[data-k="ticker"], #tbl-prev th[data-k="ticker"]').forEach(el => el.classList.add("sorted","asc"));
 }
 
