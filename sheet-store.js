@@ -7,7 +7,8 @@ const CACHE_MS = 60 * 1000;
 const TABS = {
   ldm: { name: 'RESUM BROKER LDM', range: 'A1:M25' },
   xcb: { name: 'RESUM BROKER XCB', range: 'A1:M12' },
-  fons: { name: 'RESUM FONS ANDORRA', range: 'A1:M10' }
+  fons: { name: 'RESUM FONS ANDORRA', range: 'A1:M10' },
+  cash: { name: 'TR.REPLUBIC:LDM', range: 'H133' }
 };
 
 const USD_ETFS = new Set(['BLKC', 'XAID', 'XMME', 'BRIJ', 'XDW0']);
@@ -155,10 +156,11 @@ async function loadSheetPortfolio({ force = false } = {}) {
   const now = Date.now();
   if (!force && memoryCache && now - memoryCacheAt < CACHE_MS) return memoryCache;
 
-  const [ldmRows, xcbRows, fundRows] = await Promise.all([
+  const [ldmRows, xcbRows, fundRows, cashRows] = await Promise.all([
     fetchTab(TABS.ldm),
     fetchTab(TABS.xcb),
-    fetchTab(TABS.fons)
+    fetchTab(TABS.fons),
+    fetchTab(TABS.cash)
   ]);
 
   const positions = [
@@ -169,11 +171,10 @@ async function loadSheetPortfolio({ force = false } = {}) {
     .filter(Boolean)
     .filter(position => position.type === 'ETF' || position.type === 'Fons');
 
-  const cashValue = ldmRows.reduce((sum, row) => {
-    if (normalizeName(value(row, 0))) return sum;
-    const amount = finite(value(row, 12));
-    return sum + (amount || 0);
-  }, 0);
+  const configuredCashValue = finite(process.env.CASH_VALUE_EUR);
+  const sheetCashValue = finite(value(cashRows[0], 0));
+  const cashValue = configuredCashValue ?? sheetCashValue;
+  if (cashValue === null) throw new Error('La cel·la TR.REPLUBIC:LDM!H133 no conté un saldo d’efectiu vàlid');
 
   const tickers = positions.map(position => position.ticker);
   if (new Set(tickers).size !== tickers.length) {

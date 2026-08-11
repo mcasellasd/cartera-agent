@@ -43,7 +43,9 @@ El projecte ja inclou la configuració de desplegament. Abans de desplegar:
 
 1. Comparteix la Google Sheet amb permís de lectura per enllaç.
 2. A **Settings → Environment Variables**, configura `DASHBOARD_PASSWORD`,
-   `AUTH_SECRET`, `OPENAI_API_KEY` i `OPENAI_MODEL`.
+   `AUTH_SECRET`, `OPENAI_API_KEY` i `OPENAI_MODEL`. Si vols substituir el
+    saldo d'efectiu de la cel·la `TR.REPLUBIC:LDM!H133`, configura també
+    `CASH_VALUE_EUR` com a override explícit.
 3. Torna a desplegar el projecte.
 
 El botó **Sincronitza fulla** força una lectura nova de les tres pestanyes
