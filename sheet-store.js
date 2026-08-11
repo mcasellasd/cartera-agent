@@ -10,7 +10,8 @@ const TABS = {
   xcb: { name: 'RESUM BROKER XCB', range: 'A1:M12' },
   fons: { name: 'RESUM FONS ANDORRA', range: 'A1:M10' },
   cash: { name: 'TR.REPLUBIC:LDM', range: 'H133' },
-  transactions: { name: 'TR.REPLUBIC:LDM', range: 'A1:M180' }
+  transactions: { name: 'TR.REPLUBIC:LDM', range: 'A1:M180' },
+  historicalFixedIncome: { name: 'Hoja1', range: 'BK1:CF16' }
 };
 
 const USD_ETFS = new Set(['BLKC', 'XAID', 'XMME', 'BRIJ', 'XDW0']);
@@ -49,7 +50,10 @@ const FUNDS = {
   IE00B3K83P04: { ticker: 'POLAR HC', cat: 'Salut' },
   IE00B03HCZ61: { ticker: 'VG GLOBAL', cat: 'Global' },
   IE0031786142: { ticker: 'VG EM', cat: 'Emergents' },
-  IE00B42LF923: { ticker: 'VG SMALL', cat: 'Global small cap' }
+  IE00B42LF923: { ticker: 'VG SMALL', cat: 'Global small cap' },
+  FI0008800511: { ticker: 'EVLI CORP BOND', cat: 'Renda fixa' },
+  LU0954602750: { ticker: 'PICTET ST CORP', cat: 'Renda fixa' },
+  LU1706854152: { ticker: 'AMUNDI ST CORP', cat: 'Renda fixa' }
 };
 
 let memoryCache = null;
@@ -71,7 +75,7 @@ function money(valueToCheck) {
 }
 
 function parseSheetDate(valueToCheck) {
-  const match = String(valueToCheck || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  const match = String(valueToCheck || '').trim().match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2}|\d{4})$/);
   if (!match) return null;
   const year = Number(match[3].length === 2 ? '20' + match[3] : match[3]);
   const date = new Date(year, Number(match[2]) - 1, Number(match[1]));
@@ -211,26 +215,78 @@ function fundPosition(row) {
   };
 }
 
+function historicalFixedIncomePosition(row, dateColumns) {
+  const name = normalizeName(value(row, 20));
+  const isin = normalizeName(value(row, 21));
+  if (!name || !isin) return null;
+
+  const asset = FUNDS[isin];
+  if (!asset || !['FI0008800511', 'LU0954602750', 'LU1706854152'].includes(isin)) return null;
+
+  const observations = dateColumns
+    .map(({ index, date }) => ({ date, amount: money(value(row, index)) }))
+    .filter(observation => observation.amount !== null);
+  if (!observations.length) return null;
+
+  const initial = observations[0];
+  const latest = observations[observations.length - 1];
+  const iso = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  return {
+    ticker: asset.ticker,
+    name,
+    isin,
+    type: 'Fons',
+    cat: asset.cat,
+    shares: null,
+    costPrice: null,
+    costTotal: initial.amount,
+    price: null,
+    valueTotal: latest.amount,
+    periodChangePct: null,
+    periodChangeValue: null,
+    periodLabel: null,
+    periodApproximate: false,
+    cur: '€',
+    date: iso(latest.date)
+  };
+}
+
 async function loadSheetPortfolio({ force = false } = {}) {
   const now = Date.now();
   if (!force && memoryCache && now - memoryCacheAt < CACHE_MS) return memoryCache;
 
-  const [ldmRows, xcbRows, fundRows, cashRows, transactionRows, initialInvestment] = await Promise.all([
+  const [ldmRows, xcbRows, fundRows, cashRows, transactionRows, historicalFixedIncomeRows, initialInvestment] = await Promise.all([
     fetchTab(TABS.ldm),
     fetchTab(TABS.xcb),
     fetchTab(TABS.fons),
     fetchTab(TABS.cash),
     fetchTab(TABS.transactions),
+    fetchTab(TABS.historicalFixedIncome, HISTORICAL_SHEET_ID),
     fetchHistoricalInitialInvestment()
   ]);
 
-  const positions = [
+  const historicalHeader = historicalFixedIncomeRows[0]?.c || [];
+  const historicalDateColumns = [];
+  for (let index = 0; index < 20; index += 2) {
+    const date = parseSheetDate(historicalHeader[index]?.f || value(historicalHeader, index));
+    if (date) historicalDateColumns.push({ index, date });
+  }
+
+  const currentPositions = [
     ...ldmRows.map(brokerPosition),
     ...xcbRows.map(brokerPosition),
     ...fundRows.map(fundPosition)
   ]
     .filter(Boolean)
     .filter(position => position.type === 'ETF' || position.type === 'Fons');
+  const currentTickers = new Set(currentPositions.map(position => position.ticker));
+  const positions = [
+    ...currentPositions,
+    ...historicalFixedIncomeRows
+      .slice(1)
+      .map(row => historicalFixedIncomePosition(row, historicalDateColumns))
+      .filter(position => position && !currentTickers.has(position.ticker))
+  ];
 
   const configuredCashValue = finite(process.env.CASH_VALUE_EUR);
   const sheetCashValue = finite(value(cashRows[0], 0));
