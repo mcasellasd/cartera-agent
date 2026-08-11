@@ -1,0 +1,189 @@
+// Lectura de la cartera des d'una Google Sheet publicada per enllaç.
+// No necessita credencials: la protecció continua sent la del dashboard.
+
+const SHEET_ID = process.env.GOOGLE_SHEET_ID || '1ZoEGd6xfuPpzpPRa1w2zGY9UstQ1vupSM2PKa88ralE';
+const CACHE_MS = 60 * 1000;
+
+const TABS = {
+  ldm: { name: 'RESUM BROKER LDM', range: 'A1:M25' },
+  xcb: { name: 'RESUM BROKER XCB', range: 'A1:M12' },
+  fons: { name: 'RESUM FONS ANDORRA', range: 'A1:M10' }
+};
+
+const USD_ETFS = new Set(['BLKC', 'XAID', 'XMME', 'BRIJ', 'XDW0']);
+
+const ASSETS = {
+  'ETF BLOCKCHAIN BLKC': { ticker: 'BLKC', type: 'ETF' },
+  'SWX:CSEMUS-EUR': { ticker: 'CSEMUS', type: 'ETF' },
+  'ETF EUROPE DEFENS DEFS': { ticker: 'DEFS', type: 'ETF' },
+  'ETF IA & BIG DATA XAID': { ticker: 'XAID', type: 'ETF' },
+  'ETFS MSCI EMERGING XMME': { ticker: 'XMME', type: 'ETF' },
+  'ETFS S&P 500 EUR HEDGE IUES': { ticker: 'IUES', type: 'ETF' },
+  'SPDR S&P EURO DIVID,ARISTR EUDI': { ticker: 'EUDI', type: 'ETF' },
+  'Global X European Infrastructure Development BRIJ': { ticker: 'BRIJ', type: 'ETF' },
+  'XTRACKERS WORLD ENERGY XDW0': { ticker: 'XDW0', type: 'ETF' },
+  'ISHARES NASDAQ 100 CNDX': { ticker: 'CNDX', type: 'ETF' },
+  'ISHARES GLOBAL INFRAESTR.USD DIST. INFR': { ticker: 'INFR', type: 'ETF' }
+};
+
+const EXCLUDED_ASSETS = new Set([
+  'Adobe Inc',
+  'Molson Coors Beverage Co Class B',
+  'Amadeus',
+  'Puig Brands SA',
+  'Ebro Foods SA',
+  'Italian Sea Group SpA',
+  'adidas AG',
+  'Repsol SA',
+  'Viscofan SA',
+  'PepsiCo Inc',
+  'Zoetis Inc',
+  'BTC'
+]);
+
+const FUNDS = {
+  ES0174013021: { ticker: 'CREAND RF', cat: 'Renda fixa' },
+  IE00B3K83P04: { ticker: 'POLAR HC', cat: 'Salut' },
+  IE00B03HCZ61: { ticker: 'VG GLOBAL', cat: 'Global' },
+  IE0031786142: { ticker: 'VG EM', cat: 'Emergents' },
+  IE00B42LF923: { ticker: 'VG SMALL', cat: 'Global small cap' }
+};
+
+let memoryCache = null;
+let memoryCacheAt = 0;
+
+function value(row, index) {
+  return row?.c?.[index]?.v ?? null;
+}
+
+function finite(valueToCheck) {
+  const parsed = Number(valueToCheck);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ');
+}
+
+function parseGviz(text) {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('Resposta no vàlida de Google Sheets');
+  const payload = JSON.parse(text.slice(start, end + 1));
+  if (payload.status !== 'ok' || !payload.table) {
+    throw new Error(payload.errors?.[0]?.detailed_message || 'Google Sheets no ha retornat dades');
+  }
+  return payload.table.rows || [];
+}
+
+async function fetchTab(tab) {
+  const query = new URLSearchParams({
+    tqx: 'out:json',
+    sheet: tab.name,
+    range: tab.range
+  });
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?${query}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'cartera-dashboard/1.0' }
+    });
+    if (!response.ok) throw new Error(`Google Sheets ha retornat HTTP ${response.status}`);
+    return parseGviz(await response.text());
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function brokerPosition(row) {
+  const originalName = normalizeName(value(row, 0));
+  if (!originalName || originalName.toUpperCase() === 'TOTAL') return null;
+  if (EXCLUDED_ASSETS.has(originalName)) return null;
+
+  const asset = ASSETS[originalName];
+  if (!asset) throw new Error(`Actiu desconegut a la fulla: "${originalName}"`);
+
+  return {
+    ticker: asset.ticker,
+    name: originalName,
+    type: asset.type,
+    cat: asset.cat,
+    shares: finite(value(row, 1)),
+    costPrice: finite(value(row, 2)),
+    costTotal: finite(value(row, 3)),
+    price: finite(value(row, 4)),
+    valueTotal: finite(value(row, 6)),
+    periodChangePct: finite(value(row, 11)) === null ? null : finite(value(row, 11)) * 100,
+    periodChangeValue: finite(value(row, 12)),
+    periodLabel: 'Avui',
+    periodApproximate: USD_ETFS.has(asset.ticker),
+    cur: '€'
+  };
+}
+
+function fundPosition(row) {
+  const isin = normalizeName(value(row, 1));
+  const originalName = normalizeName(value(row, 2));
+  if (!isin || !originalName) return null;
+
+  const asset = FUNDS[isin];
+  if (!asset) throw new Error(`Fons desconegut a la fulla: "${isin}"`);
+
+  return {
+    ticker: asset.ticker,
+    name: originalName,
+    isin,
+    type: 'Fons',
+    cat: asset.cat,
+    shares: finite(value(row, 3)),
+    costPrice: finite(value(row, 4)),
+    price: finite(value(row, 5)),
+    costTotal: finite(value(row, 6)),
+    valueTotal: finite(value(row, 9)),
+    periodChangePct: finite(value(row, 11)) === null ? null : finite(value(row, 11)) * 100,
+    periodChangeValue: finite(value(row, 12)),
+    periodLabel: 'Setmana',
+    periodApproximate: false,
+    cur: '€'
+  };
+}
+
+async function loadSheetPortfolio({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && memoryCache && now - memoryCacheAt < CACHE_MS) return memoryCache;
+
+  const [ldmRows, xcbRows, fundRows] = await Promise.all([
+    fetchTab(TABS.ldm),
+    fetchTab(TABS.xcb),
+    fetchTab(TABS.fons)
+  ]);
+
+  const positions = [
+    ...ldmRows.map(brokerPosition),
+    ...xcbRows.map(brokerPosition),
+    ...fundRows.map(fundPosition)
+  ]
+    .filter(Boolean)
+    .filter(position => position.type === 'ETF' || position.type === 'Fons');
+
+  const tickers = positions.map(position => position.ticker);
+  if (new Set(tickers).size !== tickers.length) {
+    throw new Error('La fulla conté tickers duplicats');
+  }
+
+  memoryCache = {
+    positions,
+    syncedAt: new Date().toISOString(),
+    source: 'Google Sheets'
+  };
+  memoryCacheAt = now;
+  return memoryCache;
+}
+
+module.exports = {
+  SHEET_ID,
+  loadSheetPortfolio
+};

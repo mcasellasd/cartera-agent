@@ -1,0 +1,20 @@
+{
+  "posicions": [
+    { "ticker": "IUES", "shares": 63.50, "costPrice": 141.75, "costTotal": 9001.13 },
+    { "ticker": "CNDX", "shares": 2.72, "costPrice": 1473.20, "costTotal": 3999.74 },
+    { "ticker": "XAID", "shares": 48.91, "costPrice": 204.46, "costTotal": 10000.00 },
+    { "ticker": "XMME", "shares": 345.34, "costPrice": 66.60, "costTotal": 23001.00 },
+    { "ticker": "CSEMUS", "shares": 47.16, "costPrice": 330.57, "costTotal": 15588.03 },
+    { "ticker": "EUDI", "shares": 640.39, "costPrice": 28.11, "costTotal": 18001.36 },
+    { "ticker": "DEFS", "shares": 3023.39, "costPrice": 5.79, "costTotal": 17501.33 },
+    { "ticker": "BRIJ", "shares": 244.47, "costPrice": 20.45, "costTotal": 4999.45 },
+    { "ticker": "INFR", "shares": 58.73, "costPrice": 34.06, "costTotal": 2000.34 },
+    { "ticker": "XDW0", "shares": 550.26, "costPrice": 52.70, "costTotal": 28998.70 },
+    { "ticker": "BLKC", "shares": 522.16, "costPrice": 15.32, "costTotal": 8001.00 },
+    { "ticker": "VG GLOBAL", "shares": 10594.18, "costPrice": 58.80, "costTotal": 622938.00 },
+    { "ticker": "VG EM", "shares": 411.65, "costPrice": 299.85, "costTotal": 123362.02 },
+    { "ticker": "VG SMALL", "shares": 136.02, "costPrice": 499.80, "costTotal": 68731.46 },
+    { "ticker": "POLAR HC", "shares": 1200.62, "costPrice": 77.72, "costTotal": 93312.00 },
+    { "ticker": "CREAND RF", "shares": 12169.69, "costPrice": 10.69, "costTotal": 130094.00 }
+  ]
+}

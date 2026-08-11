@@ -1,0 +1,2251 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard cartera + agent</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --panel2:#f0f2f5; --line:#d0d7de;
+  --txt:#1f2328; --dim:#57606a; --acc:#0969da;
+  --bear:#cf222e; --base:#9a6700; --bull:#1a7f37;
+  --chatw:420px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+body.chat-open:not(.chat-maximized) .wrap{margin-right:var(--chatw)}
+body.chat-open.chat-maximized .wrap{margin-right:min(800px, 100vw)}
+.wrap{max-width:1320px;margin:0 auto;padding:28px 20px 60px;transition:margin .25s ease}
+h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+.headrow{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:20px}
+.sub{color:var(--dim);font-size:13px}
+.price-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+#price-status{color:var(--dim);font-size:12px;max-width:340px;text-align:right}
+#update-prices.busy{cursor:wait;opacity:.65}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:18px}
+.panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 14px;font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{background:none;border:0;color:var(--dim);padding:8px 13px;cursor:pointer;font-size:13px;font-weight:500;transition:.15s}
+.seg button:hover{color:var(--txt)}
+.seg button.on{background:var(--acc);color:#0f1117}
+
+select,input[type=text],input[type=number]{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 10px;font-size:13px;font-family:inherit}
+input[type=number]{width:78px;text-align:right}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 12px;cursor:pointer;font-size:13px;font-family:inherit}
+.btn:hover{border-color:var(--acc)}
+.stats-section{margin-bottom:18px}
+.stats-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:650;margin:0 0 9px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi .lab{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.kpi .val{font-size:21px;font-weight:600;margin-top:4px;letter-spacing:-.02em}
+.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);font-weight:600;padding:8px 9px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:220px}
+th:hover{color:var(--txt)}
+th.sorted::after{content:" ▾";color:var(--acc)}
+th.sorted.asc::after{content:" ▴"}
+td{text-align:right;padding:9px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr.main{cursor:pointer;transition:.12s}
+tbody tr.main:hover,tbody tr.main.open{background:var(--panel2)}
+.tk{font-weight:700;letter-spacing:.02em}
+.nm{color:var(--dim);font-size:12px;font-weight:400}
+.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:#eaeef2;color:#444d56;margin-left:6px;vertical-align:1px}
+.tag.etf{background:#f1e8ff;color:#6f32e5}
+.tag.fons{background:#dafbe1;color:#117f34}
+
+.pos{color:var(--bull)}.neg{color:var(--bear)}
+.bear{color:var(--bear)}.base{color:var(--base)}.bull{color:var(--bull)}
+.pct{display:block;font-size:11px;color:var(--dim);margin-top:1px}
+.rangebar{position:relative;height:5px;width:80px;background:var(--line);border-radius:3px;display:inline-block;vertical-align:middle}
+.rangebar i{position:absolute;top:-3px;width:3px;height:11px;background:var(--acc);border-radius:2px}
+.detail td{background:#f6f8fa;color:var(--dim);font-size:12.5px;text-align:left;white-space:normal;line-height:1.65;padding:14px 12px}
+.detail b{color:var(--txt)}
+.chartbox{height:520px;position:relative}
+.simgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px 18px;margin-bottom:18px}
+.simrow{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px}
+.simrow span{color:var(--dim);overflow:hidden;text-overflow:ellipsis}
+.simres{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px}
+.rescard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+.rescard .lab{font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.rescard .val{font-size:24px;font-weight:600;margin:6px 0 2px;letter-spacing:-.02em}
+.rescard .d{font-size:12px}
+.exprow{display:grid;grid-template-columns:180px 1fr 62px;gap:12px;align-items:center;margin-bottom:7px;font-size:13px}
+.exprow .bar{height:16px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.exprow .bar i{display:block;height:100%;border-radius:4px}
+.exprow .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--dim)}
+.dup{background:#ffebe9;border:1px solid #ffc1c0;color:#cf222e;border-radius:9px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;line-height:1.55}
+.dup b{color:#cf222e}
+.warn{background:#fff8e6;border:1px solid #ffe1b5;color:#b25900;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.6}
+.info{background:#ddf4ff;border:1px solid #b9e2ff;color:#0969da;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.6;margin-bottom:18px}
+.scenario-method{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin:-6px 0 18px;color:var(--dim);font-size:12px;line-height:1.6}
+.scenario-method summary{cursor:pointer;color:var(--txt);font-weight:600}
+.scenario-method p{margin:8px 0 0}
+.scenario-method ul{margin:6px 0 0;padding-left:18px}
+.scenario-method a{color:var(--acc)}
+.risk-explain{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;margin:10px 0}
+.risk-explain>div{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+.risk-explain b{display:block;color:var(--txt);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.risk-explain strong{display:block;color:var(--txt);font-size:16px;margin-bottom:2px}
+.scenario-action{display:flex;justify-content:flex-end;margin:-8px 0 18px}
+.analysis-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--acc);border:1px solid var(--acc);color:#fff;border-radius:8px;padding:8px 12px;font:600 12px/1.2 inherit;white-space:nowrap;cursor:pointer}
+.analysis-btn:hover{filter:brightness(1.08)}
+.analysis-btn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.analysis-btn.row-analysis{background:var(--panel);color:var(--acc);padding:7px 10px}
+.foot{color:#5d6474;font-size:11.5px;margin-top:24px;line-height:1.7}
+.muted{color:#5d6474}
+
+/* --- Ranking de guanyadores i perdedores --- */
+.ranking-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.ranking-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+@media (max-width: 768px) {
+  .ranking-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+.ranking-column h2 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--dim);
+  margin: 0 0 16px;
+  font-weight: 600;
+}
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.ranking-item:hover {
+  background-color: var(--panel2);
+  transform: translateX(4px);
+}
+.ranking-logo-wrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ranking-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.ranking-logo-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel2);
+  color: var(--dim);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.ranking-ticker {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-weight: 600;
+  font-size: 11px;
+  width: 58px;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--txt);
+}
+.ranking-bar-container {
+  flex-grow: 1;
+  height: 6px;
+  background: var(--panel2);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.ranking-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0;
+}
+.ranking-bar.winner {
+  background: linear-gradient(90deg, #1a7f37, #3fb984);
+}
+.ranking-bar.loser {
+  background: linear-gradient(90deg, #cf222e, #ff6b6b);
+}
+.ranking-val {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  width: 65px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.ranking-val.winner {
+  color: #1a7f37;
+}
+.ranking-val.loser {
+  color: #cf222e;
+}
+
+/* ---------- Xat ---------- */
+#fab{position:fixed;right:22px;bottom:22px;z-index:60;background:var(--acc);color:#ffffff;border:0;border-radius:26px;padding:13px 20px;font:600 14px/1 inherit;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.15)}
+#fab:hover{filter:brightness(1.08)}
+body.chat-open #fab{display:none}
+#chat{position:fixed;top:0;right:0;width:var(--chatw);height:100vh;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease, width .25s ease;z-index:70}
+#chat.maximized{width:min(800px, 100vw)}
+body.chat-open #chat{transform:none}
+.chead{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.chead h3{margin:0;font-size:14px;font-weight:600;flex:1}
+.chead .st{font-size:11px;color:var(--dim)}
+.chead button{background:none;border:0;color:var(--dim);cursor:pointer;font-size:18px;line-height:1;padding:4px 6px;border-radius:6px}
+.chead button:hover{color:var(--txt);background:var(--panel2)}
+#msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:100%;font-size:13.5px;line-height:1.62}
+.msg.user{align-self:flex-end;background:#ddf4ff;border:1px solid #b9e2ff;border-radius:12px 12px 4px 12px;padding:9px 12px;max-width:88%;white-space:pre-wrap;color:var(--txt)}
+.msg.bot{color:var(--txt)}
+.msg.bot .who{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--acc);font-weight:600;margin-bottom:5px}
+.msg.err{background:#ffebe9;border:1px solid #ffc1c0;color:#cf222e;border-radius:10px;padding:10px 12px;font-size:12.5px}
+.msg.bot p{margin:0 0 9px}
+.msg.bot h4{margin:12px 0 6px;font-size:13px;color:var(--txt)}
+.msg.bot ul,.msg.bot ol{margin:0 0 9px;padding-left:19px}
+.msg.bot li{margin-bottom:3px}
+.msg.bot code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12px;font-family:ui-monospace,Menlo,monospace}
+.msg.bot table{margin:6px 0 11px;font-size:12px}
+.msg.bot th,.msg.bot td{padding:5px 7px;white-space:normal}
+.msg.bot th{cursor:default}
+.msg.bot blockquote{margin:0 0 9px;padding-left:11px;border-left:2px solid var(--line);color:var(--dim)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
+.chip{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:16px;padding:6px 11px;font-size:12px;cursor:pointer;font-family:inherit}
+.chip:hover{border-color:var(--acc);color:var(--txt)}
+.cfoot{border-top:1px solid var(--line);padding:12px 14px}
+.cbox{display:flex;gap:8px;align-items:flex-end}
+#inp{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:14px/1.45 inherit;resize:none;max-height:150px;min-height:42px}
+#inp:focus{outline:none;border-color:var(--acc)}
+#send{background:var(--acc);color:#ffffff;border:0;border-radius:10px;padding:0 15px;height:42px;font:600 14px/1 inherit;cursor:pointer}
+#send:disabled{opacity:.45;cursor:default}
+.cdisc{color:#5d6474;font-size:10.5px;margin-top:8px;line-height:1.5}
+.dots span{display:inline-block;width:5px;height:5px;margin-right:3px;border-radius:50%;background:var(--dim);animation:b 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes b{0%,60%,100%{opacity:.25}30%{opacity:1}}
+
+@media(max-width:900px){
+  body.chat-open .wrap{margin-right:0}
+  #chat{width:100%}
+}
+@media(max-width:820px){.hide-s{display:none}.wrap{padding:18px 12px}.exprow{grid-template-columns:120px 1fr 52px}}
+@media(max-width:620px){.headrow{display:block}.price-actions{justify-content:flex-start;margin-top:12px}#price-status{text-align:left}}
+
+/* ---------- Pestanyes ---------- */
+.tabbar{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.tab{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--dim);
+     padding:10px 16px;font:600 14px/1.2 inherit;cursor:pointer;border-radius:8px 8px 0 0}
+.tab:hover{color:var(--txt);background:var(--panel2)}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.tab:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+[hidden]{display:none !important}
+
+/* ---------- Targetes d'anàlisi (estil Google Finance) ---------- */
+.insight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.icard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;min-width:0}
+.icard.span2{grid-column:1/-1}
+.icard h3{margin:0 0 3px;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--txt)}
+.icard .isub{color:var(--dim);font-size:12.5px;margin:0 0 14px}
+.icard-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start;flex:1}
+.icard.stacked .icard-body{grid-template-columns:1fr}
+.inarr{font-size:13.5px;line-height:1.62;color:var(--txt);margin:0}
+.inarr b{font-weight:650}
+.inarr .muted{color:var(--dim)}
+.inote{font-size:11.5px;color:var(--dim);line-height:1.5;margin:9px 0 0}
+
+/* files de preguntes de seguiment */
+.iqs{margin-top:16px;border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:2px}
+.iq{display:flex;gap:9px;align-items:baseline;width:100%;background:none;border:0;padding:8px 6px;margin:0 -6px;border-radius:8px;text-align:left;font:14px/1.45 inherit;color:var(--acc);cursor:pointer}
+.iq:hover{background:var(--panel2)}
+.iq:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.iq::before{content:"↳";color:var(--dim);flex:none}
+.iq[disabled]{opacity:.5;cursor:default}
+
+/* barres de concentració */
+.crow{display:grid;grid-template-columns:92px minmax(0,1fr) 52px;gap:10px;align-items:center;margin-bottom:9px;font-size:13px}
+.crow .ck{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crow .cb{height:22px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.crow .cb i{display:block;height:100%;background:var(--acc);border-radius:4px}
+.crow .cv{text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
+.cmeta{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
+.cmeta div{font-size:11.5px;color:var(--dim)}
+.cmeta strong{display:block;font-size:16px;font-weight:600;color:var(--txt);letter-spacing:-.01em}
+
+/* treemap */
+.tmap{position:relative;width:100%;height:340px;border-radius:8px;overflow:hidden}
+.tcell{position:absolute;border:2px solid var(--panel);border-radius:7px;padding:8px 10px;overflow:hidden;cursor:pointer;transition:filter .12s}
+.tcell:hover{filter:brightness(.95)}
+.tcell .tt{font-weight:700;font-size:13px;letter-spacing:.01em}
+.tcell .tn{font-size:11px;opacity:.72;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tcell .tp{font-size:12px;font-weight:600;margin-top:3px}
+.tcell.small{padding:5px 6px}
+.tcell.small .tn,.tcell.small .tp{display:none}
+.tcell.small .tt{font-size:11px}
+.tlegend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:11px;font-size:11.5px;color:var(--dim)}
+.tlegend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* donut */
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+.donut{width:100%;max-width:230px;height:auto}
+.dleg{display:flex;flex-direction:column;gap:5px;width:100%;font-size:12.5px}
+.dleg div{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:center;color:var(--dim)}
+.dleg i{width:11px;height:11px;border-radius:3px}
+.dleg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dleg b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* solapaments */
+.orow{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px}
+.orow .oh{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:600;margin-bottom:5px}
+.orow .oh em{font-style:normal;color:var(--dim);font-weight:400;font-variant-numeric:tabular-nums}
+.orow .ob{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.orow .ob i{display:block;height:100%;border-radius:3px;background:var(--base)}
+.orow .od{font-size:11.5px;color:var(--dim);line-height:1.5;margin-top:6px}
+
+@media(max-width:900px){
+  .insight-grid{grid-template-columns:1fr}
+  .icard-body{grid-template-columns:1fr}
+  .tmap{height:420px}
+}
+
+/* --- Wizard --- */
+.wiz-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px}
+.wiz-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer;transition:.15s ease;text-align:left;position:relative}
+.wiz-card:hover{border-color:var(--acc);transform:translateY(-1px)}
+.wiz-card.selected{border-color:var(--acc);background:rgba(110,168,254,0.06)}
+.wiz-card h3{margin:0 0 6px;font-size:14px;color:var(--txt);display:flex;align-items:center;gap:8px}
+.wiz-card p{margin:0;font-size:12.5px;color:var(--dim);line-height:1.45}
+.wiz-card .dot-sel{position:absolute;right:16px;top:16px;width:12px;height:12px;border-radius:50%;border:2px solid var(--line)}
+.wiz-card.selected .dot-sel{border-color:var(--acc);background:var(--acc)}
+.wiz-actions{display:flex;justify-content:space-between;margin-top:18px;gap:10px}
+.wiz-btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:500;transition:.1s}
+.wiz-btn:hover:not(:disabled){border-color:var(--acc)}
+.wiz-btn.primary{background:var(--acc);color:#ffffff;border-color:var(--acc);font-weight:600}
+.wiz-btn.primary:hover{background:#085bbf;border-color:#085bbf}
+.wiz-btn:disabled{opacity:.4;cursor:default}
+.news-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.news-filters{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:-3px 0 12px}
+.news-filters label{display:flex;flex-direction:column;gap:4px;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.news-filters select{min-width:170px;text-transform:none;letter-spacing:normal;font-weight:400}
+.news-status{color:var(--dim);font-size:12px}
+.news-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.news-card{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--panel);transition:.12s}
+.news-card:hover{border-color:var(--acc);transform:translateY(-1px)}
+.news-card h3{font-size:14px;line-height:1.4;margin:0 0 9px;font-weight:600}
+.news-card h3 a{color:var(--txt);text-decoration:none}.news-card h3 a:hover{color:var(--acc)}
+.news-meta{display:flex;justify-content:space-between;gap:8px;color:var(--dim);font-size:11.5px;margin-bottom:9px}
+.news-ticker{color:var(--acc);font-weight:700}.news-empty{color:var(--dim);padding:24px 0;text-align:center}
+.advice-toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.advice-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px;margin-bottom:16px}
+.advice-summary div{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:13px;line-height:1.5}
+.advice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.advice-card{border:1px solid var(--line);border-radius:11px;padding:15px;background:var(--panel);min-width:0}
+.advice-card h3{margin:0;font-size:16px}.advice-card .advice-sub{color:var(--dim);font-size:12px;margin:3px 0 12px}
+.advice-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+.advice-badge{border-radius:14px;padding:4px 8px;font-size:11px;font-weight:650;background:var(--panel2);color:var(--dim)}
+.advice-badge.over{background:#dafbe1;color:#117f34}.advice-badge.under{background:#ffebe9;color:#cf222e}.advice-badge.neutral{background:#fff8e6;color:#9a6700}.advice-badge.insufficient{background:#eaeef2;color:#57606a}
+.advice-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.advice-fact{background:var(--panel2);border-radius:7px;padding:8px;font-size:11px;color:var(--dim)}.advice-fact strong{display:block;color:var(--txt);font-size:14px;margin-top:2px}
+.advice-card p{font-size:13px;line-height:1.55;margin:8px 0;color:var(--txt)}
+.advice-list{margin:7px 0 10px;padding-left:18px;color:var(--dim);font-size:12.5px;line-height:1.5}
+.advice-card h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:13px 0 4px}
+.advice-sources{border-top:1px solid var(--line);padding-top:9px;margin-top:12px;font-size:11.5px;line-height:1.5}
+.advice-sources a{color:var(--acc)}.advice-action{margin-top:11px}.advice-action button{width:100%}
+.advice-status{color:var(--dim);font-size:12px;margin-bottom:12px}.advice-empty{color:var(--dim);padding:28px 4px;text-align:center;border:1px dashed var(--line);border-radius:10px}
+@media(max-width:900px){.advice-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="headrow">
+  <div>
+    <h1>Dashboard cartera — <span id="ncount">…</span> posicions</h1>
+    <div class="sub" id="price-date">Carregant dades de Google Sheets…</div>
+  </div>
+  <div class="price-actions">
+    <span id="price-status" role="status" aria-live="polite"></span>
+    <button class="btn" id="update-prices" type="button">Sincronitza fulla</button>
+  </div>
+</div>
+
+<div class="tabbar" role="tablist" aria-label="Seccions del dashboard">
+  <button class="tab on" role="tab" id="tab-btn-cartera" data-tab="cartera" aria-selected="true" aria-controls="tab-cartera">Cartera</button>
+  <button class="tab" role="tab" id="tab-btn-analisi" data-tab="analisi" aria-selected="false" aria-controls="tab-analisi">Anàlisi</button>
+  <button class="tab" role="tab" id="tab-btn-noticies" data-tab="noticies" aria-selected="false" aria-controls="tab-noticies">Notícies</button>
+  <button class="tab" role="tab" id="tab-btn-consell" data-tab="consell" aria-selected="false" aria-controls="tab-consell">Consell</button>
+</div>
+
+<div class="controls">
+  <div class="seg" id="hz">
+    <button data-h="0" class="on">Curt · 6 mesos</button>
+    <button data-h="1">Mig · 2 anys</button>
+    <button data-h="2">Llarg · 5 anys</button>
+  </div>
+  <select id="cat"><option value="">Totes les categories</option></select>
+  <select id="typ"><option value="">ETFs i fons</option><option value="ETF">Només ETFs</option><option value="Fons">Només fons</option></select>
+  <input type="text" id="q" placeholder="Cerca…" style="flex:1;min-width:130px">
+</div>
+
+<div id="tab-cartera" role="tabpanel" aria-labelledby="tab-btn-cartera">
+
+<div class="stats-section">
+  <div class="stats-title">Rendiment actual</div>
+  <div class="kpis">
+    <div class="kpi"><div class="lab">Posicions</div><div class="val" id="k1">—</div></div>
+    <div class="kpi"><div class="lab">Cost total invertit</div><div class="val" id="k_cost">—</div></div>
+    <div class="kpi"><div class="lab">Valor actual</div><div class="val" id="k_val">—</div></div>
+    <div class="kpi"><div class="lab">Guany / Pèrdua (€)</div><div class="val" id="k_pnl">—</div></div>
+    <div class="kpi"><div class="lab">Guany / Pèrdua (%)</div><div class="val" id="k_pnlp">—</div></div>
+    <div class="kpi" id="k_day_card"><div class="lab">ETF · avui</div><div class="val" id="k_day">—</div><div class="pct" id="k_dayp">—</div></div>
+    <div class="kpi" id="k_week_card"><div class="lab">Fons · setmana</div><div class="val" id="k_week">—</div><div class="pct" id="k_weekp">—</div></div>
+    <div class="kpi"><div class="lab">TER ponderat</div><div class="val" id="k5">—</div></div>
+  </div>
+</div>
+
+<div class="stats-section">
+  <div class="stats-title">Distribució orientativa de risc</div>
+  <div class="kpis">
+    <div class="kpi"><div class="lab">Escenari advers · P10 <span class="scenario-horizon"></span></div><div class="val" id="k4">—</div><div class="pct" id="k4e">—</div></div>
+    <div class="kpi"><div class="lab">Escenari central · P50 <span class="scenario-horizon"></span></div><div class="val" id="k3">—</div><div class="pct" id="k3e">—</div></div>
+    <div class="kpi"><div class="lab">Escenari favorable · P90 <span class="scenario-horizon"></span></div><div class="val" id="k6">—</div><div class="pct" id="k6e">—</div></div>
+  </div>
+</div>
+<details class="scenario-method" id="scenario-method">
+  <summary>Metodologia, cobertura i fonts dels escenaris</summary>
+  <div id="scenario-method-body">Carregant metodologia…</div>
+</details>
+<div class="scenario-action">
+  <button class="analysis-btn" id="analyse-risk" type="button">Amplia l’anàlisi al xat</button>
+</div>
+
+<div class="info" id="fisc">Carregant dades…</div>
+
+<div class="panel ranking-panel" id="ranking-panel" style="display:none;">
+  <div class="ranking-grid">
+    <div class="ranking-column">
+      <h2>Guanyadores diàries</h2>
+      <div class="ranking-list" id="winners-list"></div>
+    </div>
+    <div class="ranking-column">
+      <h2>Perdedores diàries</h2>
+      <div class="ranking-list" id="losers-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Posicions i com van avui</h2>
+  <div class="table-wrap">
+    <table id="tbl-pos">
+      <thead><tr>
+        <th data-k="ticker">Posició</th>
+        <th data-k="shares" class="hide-s">Acc./Part.</th>
+        <th data-k="costTotal" class="hide-s">Cost (€)</th>
+        <th data-k="price">Preu / VL</th>
+        <th data-k="valueTotal">Valor (€)</th>
+        <th data-k="periodChangeValue">Avui / setmana</th>
+        <th data-k="pnl">G/P (€)</th>
+        <th data-k="ter" class="hide-s">TER</th>
+        <th>Anàlisi</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Previsions <span id="hzlab" style="color:var(--acc)"></span></h2>
+  <div class="table-wrap">
+    <table id="tbl-prev">
+      <thead><tr>
+        <th data-k="ticker">Posició</th>
+        <th data-k="valueTotal">Valor (€)</th>
+        <th data-k="bear" title="Escenari advers: un 10% dels resultats del model serien pitjors">Advers</th>
+        <th data-k="base" title="Punt central: la meitat dels resultats del model quedarien a cada costat">Central</th>
+        <th data-k="bull" title="Escenari favorable: un 10% dels resultats del model serien millors">Favorable</th>
+        <th>Anàlisi</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Distribució orientativa vs. valor actual (%)</h2>
+  <div class="chartbox"><canvas id="ch"></canvas></div>
+  <div class="chart-legend-box" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;line-height:1.65;color:var(--dim)">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+      <div>
+        <strong style="color:var(--txt)">Com s'interpreta aquest gràfic?</strong><br>
+        Mostra els percentils P10, central i P90 d'una distribució orientativa. No són objectius de preu ni probabilitats de guany.
+      </div>
+      <div>
+        <strong style="color:var(--txt)">Llegenda dels elements:</strong><br>
+        <span style="display:inline-block;width:12px;height:7px;background:rgba(110,168,254,.28);border:1px solid rgba(110,168,254,.6);border-radius:2px;margin-right:4px"></span>
+        <b style="color:var(--txt)">ETFs</b> (blau): banda entre P10 i P90.<br>
+        <span style="display:inline-block;width:12px;height:7px;background:rgba(63,185,132,.28);border:1px solid rgba(63,185,132,.6);border-radius:2px;margin-right:4px"></span>
+        <b style="color:var(--txt)">Fons</b> (verd): banda entre P10 i P90.<br>
+        <span style="display:inline-block;width:7px;height:7px;background:#c9a227;border-radius:50%;margin-right:4px;vertical-align:1px"></span>
+        <b style="color:var(--txt)">Punt groc</b>: escenari central calculat.
+      </div>
+      <div>
+        <strong style="color:var(--txt)">Conceptes clau:</strong><br>
+        • Com més ampla és la barra, més gran és la hipòtesi de volatilitat.<br>
+        • A sis mesos el punt central és la part proporcional del retorn anual: a aquest horitzó la volatilitat el supera de llarg, així que la banda importa molt més que el punt.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="wiz-panel">
+  <h2>Definidor d'estratègia <span id="wiz-prog" style="color:var(--dim);text-transform:none;letter-spacing:0;font-weight:400;font-size:12px"></span></h2>
+  <div id="wiz-body"></div>
+</div>
+
+<div class="panel">
+  <h2>Duplicats detectats</h2>
+  <div id="dups"></div>
+</div>
+
+</div><!-- /tab-cartera -->
+
+<div id="tab-analisi" role="tabpanel" aria-labelledby="tab-btn-analisi" hidden>
+
+<div class="stats-section">
+  <p class="stats-title">Diagnòstic de la cartera <span id="insights-scope" style="text-transform:none;letter-spacing:0;font-weight:400"></span></p>
+  <div class="insight-grid">
+    <div class="icard" id="ic-conc"></div>
+    <div class="icard" id="ic-alloc"></div>
+    <div class="icard span2" id="ic-exp">
+      <h3>Exposició real agregada</h3>
+      <p class="isub">Exposició subjacent de tots els productes, ponderada per valor de mercat <span id="expsrc"></span></p>
+      <div class="icard-body">
+        <div id="exp"></div>
+        <div id="exp-narr"></div>
+      </div>
+      <div id="exp-qs"></div>
+    </div>
+    <div class="icard span2 stacked" id="ic-tmap"></div>
+    <div class="icard span2 stacked" id="ic-over"></div>
+  </div>
+</div>
+
+</div><!-- /tab-analisi -->
+
+<div id="tab-noticies" role="tabpanel" aria-labelledby="tab-btn-noticies" hidden>
+  <div class="panel">
+    <div class="news-toolbar">
+      <div><h2 style="margin-bottom:4px">Notícies rellevants per a la cartera</h2><div class="sub">Titulars dels darrers 14 dies associats als valors visibles segons els filtres.</div></div>
+      <button class="btn" id="refresh-news" type="button">Actualitza notícies</button>
+    </div>
+    <div class="news-filters" aria-label="Filtres de notícies">
+      <label>Producte
+        <select id="news-product"><option value="">Tots els productes</option></select>
+      </label>
+      <label>Tipus
+        <select id="news-type">
+          <option value="">ETFs i fons</option>
+          <option value="ETF">Només ETFs</option>
+          <option value="Fons">Només fons</option>
+        </select>
+      </label>
+    </div>
+    <div class="news-status" id="news-status" role="status" aria-live="polite">Selecciona la pestanya per carregar el flux.</div>
+    <div class="news-grid" id="news-grid"></div>
+  </div>
+</div><!-- /tab-noticies -->
+
+<div id="tab-consell" role="tabpanel" aria-labelledby="tab-btn-consell" hidden>
+  <div class="panel">
+    <div class="advice-toolbar">
+      <div>
+        <h2 style="margin-bottom:4px">Consell de mercats</h2>
+        <div class="sub">Rànquing estratègic i tàctic basat en fonamentals, valoració, cicle i diversificació.</div>
+      </div>
+      <button class="btn" id="generate-advice" type="button">Genera informe</button>
+    </div>
+    <div class="advice-status" id="advice-status" role="status" aria-live="polite">L’informe es genera sota demanda amb fonts web actuals.</div>
+    <div id="advice-body">
+      <div class="advice-empty">Prem «Genera informe» per comparar els mercats i veure com encaixen amb la cartera actual.</div>
+    </div>
+  </div>
+</div><!-- /tab-consell -->
+
+<div class="warn">
+  <strong>Avís.</strong> Això no és assessorament financer ni fiscal. Els percentils són una distribució orientativa calculada amb hipòtesis de retorn, volatilitat i correlació documentades — no prediccions, probabilitats de guany ni objectius de preu. No incorporen explícitament divises, impostos ni canvis futurs de valoració.
+</div>
+
+<div class="foot">
+  Posicions, costos i valors actuals: Google Sheets. La data de sincronització apareix a cada posició.<br>
+  «Avui» compara els ETF amb el tancament anterior; «Setmana» compara els fons amb l'última captura de divendres. El símbol ≈ indica que l'import no incorpora tot el moviment intradia de divisa.<br>
+  El dashboard només llegeix la fulla; els canvis s'han de fer al document d'origen.
+</div>
+
+</div>
+
+<button id="fab">Parla amb l'agent</button>
+
+<aside id="chat">
+  <div class="chead">
+    <h3>Agent de cartera</h3>
+    <span class="st" id="cst"></span>
+    <button id="clr" title="Nova conversa">⟲</button>
+    <button id="max" title="Maximitzar">⛶</button>
+    <button id="cls" title="Tanca">✕</button>
+  </div>
+  <div id="msgs"></div>
+  <div class="chips" id="chips"></div>
+  <div class="cfoot">
+    <div class="cbox">
+      <textarea id="inp" rows="1" placeholder="Pregunta el que vulguis sobre la cartera…"></textarea>
+      <button id="send">Envia</button>
+    </div>
+    <div class="cdisc">L'agent actua com a assessor de patrimoni familiar. Els fons només es poden traspassar (sense tributar); els ETFs sí que es poden vendre (tributen). L'agent no és assessor financer ni fiscal registrat: contrasti les decisions importants amb un professional.</div>
+  </div>
+</aside>
+
+<script>
+// ===========================================================================
+// Estat
+// ===========================================================================
+let P=null, D=[], EXLAB={}, EXCOL={}, DUPS=[];
+let hz=0, sortK="ticker", sortA=true, CH=null;
+let newsLoaded=false, newsProduct='', newsType='';
+const HZ=["6 mesos","2 anys","5 anys"];
+
+const f=(n,d=2)=>Number(n).toLocaleString("ca-ES",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pc=v=>(v>=0?"+":"")+v.toFixed(1)+"%";
+const cls=v=>v>=0?"pos":"neg";
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const tagClass=type=>String(type||"").toLowerCase();
+
+async function apiFetch(url, options) {
+  const response = await fetch(url, options);
+  if (response.status === 401) {
+    window.location.href = '/password.html';
+    throw new Error('La sessió ha caducat.');
+  }
+  return response;
+}
+
+function formatData(iso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return iso || 'sense data';
+  return new Intl.DateTimeFormat('ca-ES', {day:'numeric', month:'long', year:'numeric'})
+    .format(new Date(`${iso}T12:00:00`));
+}
+
+function mostraDatesPreus() {
+  const dates = [...new Set(D.map(d=>d.date).filter(Boolean))].sort();
+  let detall = 'sense data disponible';
+  if (dates.length === 1) detall = `preus i VL a ${formatData(dates[0])}`;
+  if (dates.length > 1) detall = `dates de preus entre ${formatData(dates[0])} i ${formatData(dates.at(-1))}`;
+  document.getElementById('price-date').textContent =
+    `Google Sheets · ${detall} · escenaris il·lustratius, no són prediccions`;
+}
+
+// ===========================================================================
+// Càrrega
+// ===========================================================================
+function carregaDades() {
+  return apiFetch("/api/portfolio")
+    .then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(p=>{
+      P=p; D=p.posicions; EXLAB=p.exLabels; EXCOL=p.exColors; DUPS=p.duplicats;
+      document.getElementById("ncount").textContent=D.length;
+      mostraDatesPreus();
+      document.getElementById("fisc").innerHTML=
+        '<strong>Fiscalitat (Espanya).</strong> Els <span class="tag fons">Fons</span> elegibles es poden traspassar amb diferiment fiscal. Les vendes d’<span class="tag etf">ETF</span> poden generar guanys o pèrdues patrimonials.';
+      
+      const catSelect = document.getElementById("cat");
+      const currentVal = catSelect.value;
+      catSelect.innerHTML = '<option value="">Totes les categories</option>';
+      [...new Set(D.map(d=>d.cat))].sort().forEach(c=>{
+        const o=document.createElement("option");o.value=c;o.textContent=c;
+        if(c === currentVal) o.selected = true;
+        catSelect.appendChild(o);
+      });
+      const newsProductSelect=document.getElementById('news-product');
+      const currentNewsProduct=newsProductSelect.value;
+      newsProductSelect.innerHTML='<option value="">Tots els productes</option>';
+      D.slice().sort((a,b)=>a.ticker.localeCompare(b.ticker)).forEach(position=>{
+        const option=document.createElement('option');
+        option.value=position.ticker;
+        option.textContent=position.ticker+' · '+position.name;
+        if(position.ticker===currentNewsProduct) option.selected=true;
+        newsProductSelect.appendChild(option);
+      });
+      buildSim();
+      render();
+      newsLoaded=false;
+      if(!msgs.children.length) benvinguda();
+    })
+    .catch(e=>{
+      document.getElementById("fisc").innerHTML=
+        '<strong>No s\'han pogut carregar les dades.</strong> Aquesta pàgina necessita el servidor: obre una terminal a la carpeta del projecte i executa <code>npm start</code>, després entra a <code>http://localhost:3000</code>. ('+esc(e.message)+')';
+      throw e;
+    });
+}
+
+function formatNewsDate(iso) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('ca-ES', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}).format(date);
+}
+
+async function carregaNoticies() {
+  const status=document.getElementById('news-status'), grid=document.getElementById('news-grid');
+  newsProduct=document.getElementById('news-product').value;
+  newsType=document.getElementById('news-type').value;
+  const visible=rows().filter(position=>(!newsProduct || position.ticker===newsProduct)&&(!newsType || position.type===newsType));
+  status.textContent='Carregant notícies…'; grid.innerHTML='';
+  if (!visible.length) { status.textContent='No hi ha valors que coincideixin amb els filtres.'; return; }
+  try {
+    const response=await apiFetch('/api/news?tickers='+encodeURIComponent(visible.map(d=>d.ticker).join(',')));
+    const data=await response.json(); if (!response.ok) throw new Error(data.error || 'Error en carregar notícies');
+    const articles=data.articles || [];
+    status.textContent=articles.length ? `${articles.length} titulars · actualitzat ara · ${data.coverage} valors consultats · ${data.directSourcesUsed || 0} fonts directes disponibles` : 'No s’han trobat titulars recents per als valors visibles.';
+    grid.innerHTML=articles.map(a=>{
+      const source=a.sourceUrl ? `<a href="${esc(a.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(a.source)}</a>` : esc(a.source);
+      return `<article class="news-card"><div class="news-meta"><span class="news-ticker">${esc(a.ticker)}</span><span>${source} · ${esc(formatNewsDate(a.publishedAt))}</span></div><h3><a href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">${esc(a.title)}</a></h3></article>`;
+    }).join('') || '<div class="news-empty">Prova d’ampliar els filtres o actualitza més tard.</div>';
+    newsLoaded=true;
+  } catch (error) { status.textContent=error.message; grid.innerHTML='<div class="news-empty">El proveïdor de notícies no respon. Torna-ho a provar més tard.</div>'; }
+}
+
+let consellData=null, consellLoading=false;
+
+function etiquetaConsell(value) {
+  return ({sobre:'Sobreponderar',neutral:'Neutral',sota:'Infraponderar',insuficient:'Informació insuficient'})[value] || 'No disponible';
+}
+
+function classeConsell(value) {
+  return ({sobre:'over',neutral:'neutral',sota:'under',insuficient:'insufficient'})[value] || 'insufficient';
+}
+
+function percentConsell(value) {
+  return Number.isFinite(Number(value)) ? Number(value).toFixed(1)+'%' : 'n/d';
+}
+
+function llistaConsell(title, items) {
+  if (!Array.isArray(items) || !items.length) return '';
+  return '<h4>'+title+'</h4><ul class="advice-list">'+items.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul>';
+}
+
+function diagnosiBanda(market) {
+  const band=market.suggestedBandPct, current=Number(market.currentExposurePct);
+  if (!band || !Number.isFinite(current)) return 'Sense banda fiable';
+  if (current < band.min - 0.1) return 'Per sota de la banda';
+  if (current > band.max + 0.1) return 'Per sobre de la banda';
+  return 'Dins de la banda';
+}
+
+function renderConsell(data) {
+  consellData=data;
+  const status=document.getElementById('advice-status');
+  status.textContent='Generat '+formatNewsDate(data.generatedAt)+' · cartera actualitzada '+formatData((data.portfolioAsOf || '').slice(0,10));
+  const summary='<div class="advice-summary">'+data.summary.map(item=>'<div>'+esc(item)+'</div>').join('')+'</div>';
+  const cards=data.markets.map(market=>{
+    const band=market.suggestedBandPct;
+    const sources=(market.sources || []).map(source=>'<a href="'+esc(source.url)+'" target="_blank" rel="noopener noreferrer">'+esc(source.title)+'</a>'+ (source.date ? ' · '+esc(source.date) : '')).join('<br>');
+    const prompt='Investiga el mercat '+market.label+' a partir de l’informe de consell actual. '+
+      'Visió estratègica: '+etiquetaConsell(market.strategicView)+'. Visió tàctica: '+etiquetaConsell(market.tacticalView)+'. '+
+      'Tesi: '+market.thesis+' Exposició actual calculada: '+percentConsell(market.currentExposurePct)+'. '+
+      'Banda orientativa: '+(band ? percentConsell(band.min)+'–'+percentConsell(band.max) : 'no disponible')+'. '+
+      'Contrasta les fonts i explica què podria fer canviar la conclusió, sense donar una ordre directa d’inversió.';
+    return '<article class="advice-card">'+
+      '<h3>'+esc(market.label)+'</h3>'+
+      '<div class="advice-sub">Exposició actual: '+percentConsell(market.currentExposurePct)+' · '+esc(diagnosiBanda(market))+'</div>'+
+      '<div class="advice-badges">'+
+        '<span class="advice-badge '+classeConsell(market.strategicView)+'">Estratègia: '+esc(etiquetaConsell(market.strategicView))+'</span>'+
+        '<span class="advice-badge '+classeConsell(market.tacticalView)+'">Tàctica: '+esc(etiquetaConsell(market.tacticalView))+'</span>'+
+        '<span class="advice-badge">Confiança: '+esc(market.confidence)+'</span>'+
+      '</div>'+
+      '<div class="advice-facts">'+
+        '<div class="advice-fact">Actual<strong>'+percentConsell(market.currentExposurePct)+'</strong></div>'+
+        '<div class="advice-fact">Banda<strong>'+(band ? percentConsell(band.min)+'–'+percentConsell(band.max) : 'n/d')+'</strong></div>'+
+        '<div class="advice-fact">Diagnòstic<strong>'+esc(diagnosiBanda(market))+'</strong></div>'+
+      '</div>'+
+      '<p>'+esc(market.thesis)+'</p>'+
+      llistaConsell('Catalitzadors',market.catalysts)+
+      llistaConsell('Riscos',market.risks)+
+      llistaConsell('Què invalidaria la tesi',market.invalidators)+
+      '<div class="advice-sources"><strong>Fonts</strong><br>'+sources+'</div>'+
+      '<div class="advice-action"><button class="btn" type="button" data-advice-market="'+esc(market.id)+'">Investiga aquest mercat al xat</button></div>'+
+    '</article>';
+  }).join('');
+  document.getElementById('advice-body').innerHTML=summary+'<div class="advice-grid">'+cards+'</div>';
+  document.querySelectorAll('[data-advice-market]').forEach(button=>{
+    button.onclick=()=>investigaConsell(button.dataset.adviceMarket);
+  });
+}
+
+function investigaConsell(id) {
+  const market=consellData?.markets?.find(item=>item.id===id);
+  if (!market) return;
+  obreAnalisiAlXat('Investiga amb fonts actuals el mercat '+market.label+'. Revisa aquesta conclusió del meu informe: '+
+    'estratègia '+etiquetaConsell(market.strategicView)+', tàctica '+etiquetaConsell(market.tacticalView)+', confiança '+market.confidence+
+    ', exposició actual '+percentConsell(market.currentExposurePct)+', banda '+(market.suggestedBandPct ? percentConsell(market.suggestedBandPct.min)+'–'+percentConsell(market.suggestedBandPct.max) : 'no disponible')+
+    '. Tesi: '+market.thesis+'. Contrasta les fonts, separa fets i inferències i indica què podria invalidar-la. No donis una ordre directa d’inversió.');
+}
+
+async function carregaConsell() {
+  if (consellLoading) return;
+  const status=document.getElementById('advice-status'), body=document.getElementById('advice-body'), button=document.getElementById('generate-advice');
+  consellLoading=true; button.disabled=true; button.textContent='Generant…'; status.textContent='Consultant dades actuals i fonts web…';
+  body.innerHTML='<div class="advice-empty">L’agent està comparant els mercats. Pot trigar uns moments.</div>';
+  try {
+    const response=await apiFetch('/api/advice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({horizon:'strategic_tactical',includeCurrentExposure:true})});
+    const data=await response.json().catch(()=>({}));
+    if (!response.ok) throw new Error(data.error || 'No s’ha pogut generar el consell.');
+    renderConsell(data);
+  } catch(error) {
+    status.textContent=error.message;
+    body.innerHTML='<div class="advice-empty">No s’ha pogut generar l’informe. Revisa la configuració del proveïdor web i torna-ho a provar.</div>';
+  } finally {
+    consellLoading=false; button.disabled=false; button.textContent='Genera informe';
+  }
+}
+
+async function inicialitza() {
+  const session = await fetch('/api/session').then(r=>r.json()).catch(()=>null);
+  if (!session?.authenticated) {
+    window.location.href = '/password.html';
+    return;
+  }
+  await carregaDades();
+  document.querySelectorAll('#tbl-pos th[data-k="ticker"], #tbl-prev th[data-k="ticker"]').forEach(el => el.classList.add("sorted","asc"));
+}
+
+inicialitza().catch(()=>{});
+
+document.getElementById('update-prices').onclick = async function() {
+  const button = this;
+  const status = document.getElementById('price-status');
+  button.disabled = true;
+  button.classList.add('busy');
+  button.textContent = 'Actualitzant…';
+  status.textContent = 'Llegint la fulla compartida…';
+
+  try {
+    const response = await apiFetch('/api/update-prices', {method:'POST'});
+    const result = await response.json().catch(()=>({}));
+    if (!response.ok) throw new Error(result.error || `Error HTTP ${response.status}`);
+
+    await carregaDades();
+    const ok = result.updated?.length || 0;
+    const failed = result.failed?.length || 0;
+    const failedTickers = (result.failed || []).map(item=>item.ticker).join(', ');
+    status.textContent = failed
+      ? `${ok} actualitzats; ${failed} no disponibles: ${failedTickers}.`
+      : `${ok} posicions sincronitzades.`;
+    status.className = failed ? 'base' : 'pos';
+  } catch (error) {
+    status.textContent = error.message;
+    status.className = 'neg';
+  } finally {
+    button.disabled = false;
+    button.classList.remove('busy');
+    button.textContent = 'Sincronitza fulla';
+  }
+};
+
+// ===========================================================================
+// Taula, KPIs, gràfic
+// ===========================================================================
+function rows(){
+  const q=document.getElementById("q").value.toLowerCase(),
+        c=document.getElementById("cat").value,
+        t=document.getElementById("typ").value;
+  let r=D.filter(d=>(!c||d.cat===c)&&(!t||d.type===t)
+        &&(d.ticker+d.name+(d.isin||"")).toLowerCase().includes(q));
+  r.sort((a,b)=>{
+    let x,y;
+    if(sortK==="bear"||sortK==="base"||sortK==="bull"){
+      const i={bear:0,base:1,bull:2}[sortK];
+      x=a.s?.[hz]?.[i]??-9999; y=b.s?.[hz]?.[i]??-9999;
+    } else if(sortK==="pnl"){
+      x=(a.valueTotal||0)-(a.costTotal||0); y=(b.valueTotal||0)-(b.costTotal||0);
+    } else if(sortK==="ticker"){ x=a.ticker; y=b.ticker; }
+    else { x=a[sortK]===null||a[sortK]===undefined?-9999:a[sortK]; y=b[sortK]===null||b[sortK]===undefined?-9999:b[sortK]; }
+    return (x<y?-1:x>y?1:0)*(sortA?1:-1);
+  });
+  return r;
+}
+
+function tgt(d,i){
+  const p=d.price, v=d.s?.[hz]?.[i];
+  if(v===null||v===undefined) return `<span class="muted">n/d</span>`;
+  if(p===null) return `<span class="muted">—</span><span class="pct">${pc(v)}</span>`;
+  const t=p*(1+v/100);
+  return `${d.cur}${f(t,t>500?0:2)}<span class="pct">${pc(v)}</span>`;
+}
+
+function scenarioCorrelation(a,b,config){
+  const ga=a.scenario.group, gb=b.scenario.group;
+  const fixedA=ga.startsWith("fixed_income"), fixedB=gb.startsWith("fixed_income");
+  if(ga===gb) return fixedA ? config.fixedIncomeSameGroup : config.sameGroup;
+  if(fixedA||fixedB) return config.equityFixedIncome;
+  if(ga==="blockchain_equity"||gb==="blockchain_equity") return config.blockchainEquity;
+  return config.equityCrossGroup;
+}
+
+function scenarioCumulative(annualReturn,volatility,horizon,z){
+  const drift=horizon.useLongTermReturn?Math.log1p(annualReturn/100)*horizon.years:0;
+  return (Math.exp(drift+z*(volatility/100)*Math.sqrt(horizon.years))-1)*100;
+}
+
+function portfolioScenario(positions){
+  const meta=P?.meta?.scenarios;
+  if(!meta) return null;
+  const valid=positions.filter(d=>d.scenario&&Number.isFinite(d.valueTotal)&&d.valueTotal>0);
+  const total=positions.reduce((s,d)=>s+(d.valueTotal||0),0);
+  const covered=valid.reduce((s,d)=>s+d.valueTotal,0);
+  if(!covered) return null;
+  const weighted=valid.map(d=>({d,w:d.valueTotal/covered}));
+  const annualReturn=weighted.reduce((s,x)=>s+x.w*x.d.scenario.annualReturnNet,0);
+  let variance=0;
+  for(const a of weighted){
+    for(const b of weighted){
+      const rho=scenarioCorrelation(a.d,b.d,meta.correlations);
+      variance+=a.w*b.w*(a.d.scenario.annualVolatility/100)*(b.d.scenario.annualVolatility/100)*rho;
+    }
+  }
+  const volatility=Math.sqrt(Math.max(0,variance))*100;
+  const horizon=meta.horizons[hz];
+  return {
+    lower:scenarioCumulative(annualReturn,volatility,horizon,meta.quantiles.zLower),
+    central:scenarioCumulative(annualReturn,volatility,horizon,0),
+    upper:scenarioCumulative(annualReturn,volatility,horizon,meta.quantiles.zUpper),
+    annualReturn,
+    volatility,
+    coverage:total?covered/total*100:0
+  };
+}
+
+function renderScenarioMethod(portfolio, visible, totalValue){
+  const meta=P?.meta?.scenarios;
+  const body=document.getElementById("scenario-method-body");
+  if(!meta){body.textContent="Metodologia no disponible.";return;}
+  const sources=(meta.sources||[]).map(source=>
+    `<li><a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.title)}</a>: ${esc(source.use)}</li>`
+  ).join("");
+  const moneyImpact=value=>{
+    if(!Number.isFinite(value)||!totalValue) return "—";
+    const euros=totalValue*value/100;
+    return `${euros>=0?"+":""}${f(euros,0)} €`;
+  };
+  const lowConfidenceValue=(visible||[])
+    .filter(position=>position.scenario?.confidence==="baixa")
+    .reduce((sum,position)=>sum+(position.valueTotal||0),0);
+  const lowConfidenceShare=totalValue?lowConfidenceValue/totalValue*100:0;
+  const horizon=meta.horizons?.[hz];
+  body.innerHTML=`
+    <p><b>En una frase:</b> aquests tres valors delimiten una zona de resultats plausibles per als pròxims ${esc(HZ[hz])}; no són una predicció ni el pitjor cas possible.</p>
+    <div class="risk-explain">
+      <div><b>Escenari advers · P10</b><strong>${portfolio?pc(portfolio.lower):"—"} · ${portfolio?moneyImpact(portfolio.lower):"—"}</strong>En el model, 1 de cada 10 resultats seria pitjor i 9 de cada 10 seria millor.</div>
+      <div><b>Escenari central · P50</b><strong>${portfolio?pc(portfolio.central):"—"} · ${portfolio?moneyImpact(portfolio.central):"—"}</strong>És el punt del mig: la meitat dels resultats quedarien per sota i l'altra meitat per sobre.</div>
+      <div><b>Escenari favorable · P90</b><strong>${portfolio?pc(portfolio.upper):"—"} · ${portfolio?moneyImpact(portfolio.upper):"—"}</strong>En el model, només 1 de cada 10 resultats seria millor. No és un objectiu de rendiment.</div>
+      <div><b>Volatilitat anual estimada</b><strong>${portfolio?portfolio.volatility.toFixed(1)+"%":"—"}</strong>Mesura la intensitat de les oscil·lacions assumides. Com més alta, més amplis són els escenaris; no és una pèrdua màxima.</div>
+      <div><b>Amplada del rang P10–P90</b><strong>${portfolio?(portfolio.upper-portfolio.lower).toFixed(1)+" punts":"—"}</strong>Resumeix la incertesa: un rang més ample significa menys precisió sobre el resultat futur.</div>
+      <div><b>Qualitat de les estimacions</b><strong>${portfolio?portfolio.coverage.toFixed(0)+"% cobert":"—"}</strong>${lowConfidenceShare.toFixed(0)}% del valor usa proxies de confiança baixa; cal interpretar-lo amb més prudència.</div>
+    </div>
+    <p><b>Dades i hipòtesis:</b> les referències de mercat es van revisar el ${esc(formatData(meta.asOf))}. El TER es resta del rendiment central. En canvi, la volatilitat —quant pot oscil·lar cada producte— i la correlació —quant tendeixen a moure's junts— són estimacions del model, no dades observades en temps real.</p>
+    ${horizon?.description?`<p><b>Per què aquest horitzó:</b> ${esc(horizon.description)}</p>`:""}
+    <p><b>Fonts utilitzades:</b></p><ul>${sources}</ul>
+    <p><b>Què no cobreix:</b> ${(meta.limitations||[]).map(esc).join(" ")}</p>`;
+}
+
+function render(){
+  const r=rows(), tbPos=document.querySelector("#tbl-pos tbody"), tbPrev=document.querySelector("#tbl-prev tbody");
+  tbPos.innerHTML="";
+  tbPrev.innerHTML="";
+  document.getElementById("ncount").textContent=r.length;
+  document.getElementById("hzlab").textContent="· "+HZ[hz];
+  r.forEach(d=>{
+    const pnl = (d.valueTotal!=null && d.costTotal!=null) ? d.valueTotal - d.costTotal : null;
+    const pnlPct = (pnl!=null && d.costTotal) ? pnl/d.costTotal*100 : null;
+    const pnlHtml = pnl!=null
+      ? `<span class="${cls(pnl)}">${pnl>=0?'+':''}${f(pnl,0)} €</span><span class="pct ${cls(pnl)}">${pnlPct>=0?'+':''}${pnlPct.toFixed(1)}%</span>`
+      : `<span class="muted">—</span>`;
+    const periodHtml = d.periodChangeValue!=null && d.periodChangePct!=null
+      ? `<span class="${cls(d.periodChangeValue)}">${d.periodApproximate?'≈ ':''}${d.periodChangeValue>=0?'+':''}${f(d.periodChangeValue,0)} €</span><span class="pct ${cls(d.periodChangePct)}">${esc(d.periodLabel)} · ${d.periodChangePct>=0?'+':''}${d.periodChangePct.toFixed(2)}%</span>`
+      : `<span class="muted">n/d</span>`;
+
+    // Row for tbl-pos
+    const trPos=document.createElement("tr"); trPos.className="main"; trPos.id = `row-pos-${d.ticker}`;
+    trPos.innerHTML=`
+      <td><span class="tk">${esc(d.ticker)}</span><span class="tag ${tagClass(d.type)}">${d.type}</span><span class="tag">${esc(d.cat)}</span><br>
+          <span class="nm">${esc(d.name)}${d.isin?" · "+d.isin:""}</span></td>
+      <td class="hide-s">${d.shares!=null?f(d.shares,d.shares>100?2:4):'<span class="muted">—</span>'}</td>
+      <td class="hide-s">${d.costTotal!=null?f(d.costTotal,0)+' €':'<span class="muted">—</span>'}</td>
+      <td>${d.price!==null?d.cur+f(d.price,d.price>500?0:2):'<span class="muted">n/d</span>'}<span class="pct">${esc(d.date)}</span></td>
+      <td>${d.valueTotal!=null?f(d.valueTotal,0)+' €':'<span class="muted">—</span>'}</td>
+      <td>${periodHtml}</td>
+      <td>${pnlHtml}</td>
+      <td class="hide-s">${d.ter!==null?d.ter.toFixed(2)+"%":'<span class="muted">n/d</span>'}<span class="pct">${esc(d.aum)}</span></td>
+      <td><button class="analysis-btn row-analysis" type="button" aria-label="Analitza ${esc(d.ticker)} al xat">Analitza</button></td>`;
+    const detPos=document.createElement("tr"); detPos.className="detail"; detPos.style.display="none";
+    detPos.innerHTML=`<td colspan="9">${d.note}</td>`;
+
+    // Row for tbl-prev
+    const trPrev=document.createElement("tr"); trPrev.className="main";
+    trPrev.innerHTML=`
+      <td><span class="tk">${esc(d.ticker)}</span><span class="tag ${tagClass(d.type)}">${d.type}</span><span class="tag">${esc(d.cat)}</span><br>
+          <span class="nm">${esc(d.name)}${d.isin?" · "+d.isin:""}</span></td>
+      <td>${d.valueTotal!=null?f(d.valueTotal,0)+' €':'<span class="muted">—</span>'}</td>
+      <td class="bear">${tgt(d,0)}</td>
+      <td class="base">${tgt(d,1)}</td>
+      <td class="bull">${tgt(d,2)}</td>
+      <td><button class="analysis-btn row-analysis" type="button" aria-label="Analitza ${esc(d.ticker)} al xat">Analitza</button></td>`;
+    const detPrev=document.createElement("tr"); detPrev.className="detail"; detPrev.style.display="none";
+    detPrev.innerHTML=`<td colspan="6">${d.note}</td>`;
+
+    const setupAnalysisBtn = (btn) => {
+      btn.onclick=e=>{
+        e.stopPropagation();
+        obreAnalisiAlXat(
+          `Analitza ${d.ticker} (${d.name}) dins de la meva cartera, amb l'horitzó ${HZ[hz]}. `+
+          `Explica el seu paper, les concentracions i els solapaments, i interpreta els escenaris P10, central i P90, inclosa la confiança del proxy utilitzat. `+
+          `Identifica els riscos, els catalitzadors actuals, què podria invalidar la tesi i quina informació falta. `+
+          `Consulta informació pública actual quan sigui material i cita les fonts. Distingeix dades, hipòtesis i inferències, sense donar una ordre directa de compra o venda.`
+        );
+      };
+    };
+
+    setupAnalysisBtn(trPos.querySelector(".row-analysis"));
+    setupAnalysisBtn(trPrev.querySelector(".row-analysis"));
+
+    trPos.onclick=()=>{const o=detPos.style.display==="none";detPos.style.display=o?"":"none";trPos.classList.toggle("open",o);};
+    trPrev.onclick=()=>{const o=detPrev.style.display==="none";detPrev.style.display=o?"":"none";trPrev.classList.toggle("open",o);};
+
+    tbPos.appendChild(trPos); tbPos.appendChild(detPos);
+    tbPrev.appendChild(trPrev); tbPrev.appendChild(detPrev);
+  });
+  const weightedAverage=(positions,getValue)=>{
+    const valid=positions.filter(d=>Number.isFinite(getValue(d))&&Number.isFinite(d.valueTotal)&&d.valueTotal>0);
+    const weight=valid.reduce((s,d)=>s+d.valueTotal,0);
+    return weight?valid.reduce((s,d)=>s+getValue(d)*d.valueTotal,0)/weight:null;
+  };
+  document.getElementById("k1").textContent=r.length;
+
+  // KPIs financers reals
+  const allD = r;
+  const totalCost = allD.reduce((s,d)=>s+(d.costTotal||0),0);
+  const totalVal  = allD.reduce((s,d)=>s+(d.valueTotal||0),0);
+  const totalPnl  = totalVal - totalCost;
+  const totalPnlPct = totalCost ? totalPnl/totalCost*100 : 0;
+  const periodSummary=(type,cardId,valueId,pctId)=>{
+    const positions=allD.filter(d=>d.type===type&&d.periodChangeValue!=null&&d.periodChangePct!=null);
+    const card=document.getElementById(cardId);
+    card.style.display=positions.length?'':'none';
+    if(!positions.length) return;
+    const change=positions.reduce((s,d)=>s+d.periodChangeValue,0);
+    const current=positions.reduce((s,d)=>s+(d.valueTotal||0),0);
+    const previous=current-change;
+    const changePct=previous?change/previous*100:null;
+    const approximate=positions.some(d=>d.periodApproximate);
+    const valueEl=document.getElementById(valueId);
+    valueEl.textContent=`${approximate?'≈ ':''}${change>=0?'+':''}${f(change,0)} €`;
+    valueEl.className='val '+cls(change);
+    const pctEl=document.getElementById(pctId);
+    pctEl.textContent=changePct!=null?`${changePct>=0?'+':''}${changePct.toFixed(2)}% · ${positions.length} pos.`:'—';
+    pctEl.className='pct '+(changePct!=null?cls(changePct):'');
+  };
+  document.getElementById("k_cost").textContent = f(totalCost,0)+' €';
+  const kVal=document.getElementById("k_val"); kVal.textContent=f(totalVal,0)+' €'; kVal.className='val '+cls(totalPnl);
+  const kPnl=document.getElementById("k_pnl"); kPnl.textContent=(totalPnl>=0?'+':'')+f(totalPnl,0)+' €'; kPnl.className='val '+cls(totalPnl);
+  const kPnlp=document.getElementById("k_pnlp"); kPnlp.textContent=(totalPnlPct>=0?'+':'')+totalPnlPct.toFixed(2)+'%'; kPnlp.className='val '+cls(totalPnl);
+  periodSummary('ETF','k_day_card','k_day','k_dayp');
+  periodSummary('Fons','k_week_card','k_week','k_weekp');
+
+  const terWeighted=weightedAverage(r,d=>d.ter);
+  document.querySelectorAll(".scenario-horizon").forEach(el=>el.textContent="· "+HZ[hz]);
+  const portfolio=portfolioScenario(r);
+  const setScenarioKpi=(id,value)=>{
+    const el=document.getElementById(id);
+    el.textContent=value!=null?pc(value):"—";
+    el.className="val "+(value!=null?cls(value):"");
+    const euroEl=document.getElementById(id+"e");
+    const euroImpact=value!=null?totalVal*value/100:null;
+    euroEl.textContent=euroImpact!=null
+      ? `${euroImpact>=0?"+":""}${f(euroImpact,0)} € sobre el valor actual`
+      : "—";
+    euroEl.className="pct "+(euroImpact!=null?cls(euroImpact):"");
+  };
+  setScenarioKpi("k4",portfolio?.lower);
+  setScenarioKpi("k3",portfolio?.central);
+  setScenarioKpi("k6",portfolio?.upper);
+  const method=document.getElementById("scenario-method");
+  method.dataset.coverage=portfolio?portfolio.coverage.toFixed(1):"0";
+  method.querySelector("summary").textContent=portfolio
+    ? `Com llegir aquests escenaris · ${portfolio.volatility.toFixed(1)}% d'oscil·lació anual estimada · ${portfolio.coverage.toFixed(0)}% cobert`
+    : "Com llegir aquests escenaris";
+  renderScenarioMethod(portfolio,r,totalVal);
+  document.getElementById("k5").textContent=terWeighted!=null?terWeighted.toFixed(2)+"%":"—";
+  renderRankings(r);
+  chart(r); sim(r);
+}
+
+function scrollToPosition(ticker) {
+  const row = document.getElementById(`row-pos-${ticker}`);
+  if (row) {
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const nextRow = row.nextElementSibling;
+    if (nextRow && nextRow.classList.contains('detail') && nextRow.style.display === 'none') {
+      row.click();
+    }
+    row.style.transition = "background-color 0.3s ease";
+    row.style.backgroundColor = "var(--panel2)";
+    setTimeout(() => {
+      row.style.backgroundColor = "";
+    }, 1500);
+  }
+}
+
+function renderRankings(r) {
+  const withChange = r.filter(d => d.periodChangePct != null && Number.isFinite(d.periodChangePct));
+  const panel = document.getElementById("ranking-panel");
+
+  if (!withChange.length) {
+    panel.style.display = "none";
+    return;
+  }
+
+  const winners = withChange
+    .filter(d => d.periodChangePct > 0)
+    .sort((a, b) => b.periodChangePct - a.periodChangePct)
+    .slice(0, 5);
+
+  const losers = withChange
+    .filter(d => d.periodChangePct < 0)
+    .sort((a, b) => a.periodChangePct - b.periodChangePct)
+    .slice(0, 5);
+
+  if (!winners.length && !losers.length) {
+    panel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "";
+
+  const maxAbsChange = Math.max(
+    ...winners.map(d => Math.abs(d.periodChangePct)),
+    ...losers.map(d => Math.abs(d.periodChangePct)),
+    1.0
+  );
+
+  const renderItem = (d, type) => {
+    const cleanTicker = d.ticker.split('.')[0];
+    const formattedChange = (d.periodChangePct >= 0 ? "+" : "") + d.periodChangePct.toFixed(2) + "%";
+    const logoUrl = `https://assets.parqet.com/logos/symbol/${cleanTicker}?format=png`;
+
+    return `
+      <div class="ranking-item" data-ticker="${esc(d.ticker)}" onclick="scrollToPosition('${esc(d.ticker)}')" style="cursor: pointer;" title="Fes clic per veure la posició a la taula">
+        <div class="ranking-logo-wrapper">
+          <img class="ranking-logo" src="${logoUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" alt="">
+          <div class="ranking-logo-fallback" style="display:none;">${esc(cleanTicker.slice(0, 2))}</div>
+        </div>
+        <div class="ranking-ticker">${esc(d.ticker)}</div>
+        <div class="ranking-bar-container">
+          <div class="ranking-bar ${type}" style="width: 0%"></div>
+        </div>
+        <div class="ranking-val ${type}">${formattedChange}</div>
+      </div>
+    `;
+  };
+
+  const winnersList = document.getElementById("winners-list");
+  if (winners.length) {
+    winnersList.innerHTML = winners.map(d => renderItem(d, "winner")).join("");
+  } else {
+    winnersList.innerHTML = `<div class="muted" style="font-size:12.5px; padding: 10px 0; text-align: center;">No hi ha posicions amb guanys.</div>`;
+  }
+
+  const losersList = document.getElementById("losers-list");
+  if (losers.length) {
+    losersList.innerHTML = losers.map(d => renderItem(d, "loser")).join("");
+  } else {
+    losersList.innerHTML = `<div class="muted" style="font-size:12.5px; padding: 10px 0; text-align: center;">No hi ha posicions amb pèrdues.</div>`;
+  }
+
+  // Set widths in next ticks to trigger CSS transition animations
+  setTimeout(() => {
+    winnersList.querySelectorAll(".ranking-item").forEach(item => {
+      const ticker = item.dataset.ticker;
+      const d = winners.find(x => x.ticker === ticker);
+      if (d) {
+        const bar = item.querySelector(".ranking-bar");
+        const widthPct = (Math.abs(d.periodChangePct) / maxAbsChange) * 100;
+        bar.style.width = `${widthPct}%`;
+      }
+    });
+    losersList.querySelectorAll(".ranking-item").forEach(item => {
+      const ticker = item.dataset.ticker;
+      const d = losers.find(x => x.ticker === ticker);
+      if (d) {
+        const bar = item.querySelector(".ranking-bar");
+        const widthPct = (Math.abs(d.periodChangePct) / maxAbsChange) * 100;
+        bar.style.width = `${widthPct}%`;
+      }
+    });
+  }, 50);
+}
+
+function chart(r){
+  const modeled=r.filter(d=>d.s?.[hz]);
+  const lab=modeled.map(d=>d.ticker);
+  const rng=modeled.map(d=>[d.s[hz][0],d.s[hz][2]]);
+  const bs=modeled.map((d,i)=>({x:d.s[hz][1],y:lab[i]}));
+  const cols=modeled.map(d=>d.type==="Fons"?"rgba(26,127,55,.16)":"rgba(9,105,218,.16)");
+  const brd=modeled.map(d=>d.type==="Fons"?"rgba(26,127,55,.6)":"rgba(9,105,218,.6)");
+  if(CH)CH.destroy();
+  CH=new Chart(document.getElementById("ch"),{
+    type:"bar",
+    data:{labels:lab,datasets:[
+      {label:"Banda P10→P90",data:rng,backgroundColor:cols,borderColor:brd,borderWidth:1,borderSkipped:false,borderRadius:4,barPercentage:.62},
+      {label:"Escenari central",data:bs,type:"scatter",backgroundColor:"#9a6700",pointRadius:5.5,pointHoverRadius:8}
+    ]},
+    options:{indexAxis:"y",maintainAspectRatio:false,responsive:true,
+      scales:{
+        x:{grid:{color:"#d0d7de"},ticks:{color:"#57606a",callback:v=>v+"%"},title:{display:true,text:"variació vs. preu actual",color:"#57606a",font:{size:11}}},
+        y:{grid:{display:false},ticks:{color:"#1f2328",font:{weight:"600",size:11}}}
+      },
+      plugins:{
+        legend:{labels:{color:"#57606a",boxWidth:12,usePointStyle:true}},
+        tooltip:{callbacks:{label:c=>c.datasetIndex===0
+          ? `P10 ${c.raw[0].toFixed(1)}% · P90 ${c.raw[1].toFixed(1)}%`
+          : `Central ${c.raw.x.toFixed(1)}%`}}
+      }}
+  });
+}
+
+// ===========================================================================
+// Projecció real, operacions, exposició, duplicats
+// ===========================================================================
+
+function sim(visiblePositions){ exposure(visiblePositions); dups(visiblePositions); insights(visiblePositions); }
+
+// ===========================================================================
+// Diagnòstic: targetes d'anàlisi + preguntes de seguiment cap al xat
+// Tot es calcula aquí amb les dades reals de la cartera. Cap xifra d'aquest
+// bloc surt del model: les preguntes són el que obre l'anàlisi de l'agent.
+// ===========================================================================
+
+const CLASS_META={
+  rvus:{label:"Renda variable EUA",color:"#6ea8fe"},
+  rveu:{label:"Renda variable Europa i desenvolupats ex-EUA",color:"#3fb984"},
+  rvem:{label:"Renda variable emergents",color:"#c9a227"},
+  rvglob:{label:"Renda variable global i sectorial",color:"#8c7ae6"},
+  cripto:{label:"Cripto / blockchain",color:"#f0c93f"},
+  rf:{label:"Renda fixa",color:"#5d6474"},
+  altres:{label:"Sense classificar",color:"#a0a8b8"}
+};
+
+function assetClass(d){
+  const g=d.scenario?.group||"";
+  if(g.startsWith("fixed_income")) return "rf";
+  if(g==="blockchain_equity") return "cripto";
+  if(g==="us_equity"||g==="us_growth") return "rvus";
+  if(g==="em_equity") return "rvem";
+  if(g==="developed_ex_us"||g==="europe_thematic") return "rveu";
+  if(g) return "rvglob";
+  return "altres";
+}
+
+// Botons de pregunta: envien text real (amb xifres) al panell de xat.
+function questionsHtml(list){
+  return `<div class="iqs">${list.map((q,i)=>
+    `<button class="iq" type="button" data-q="${esc(q)}" data-i="${i}">${esc(q)}</button>`
+  ).join("")}</div>`;
+}
+
+document.addEventListener("click",e=>{
+  const btn=e.target.closest(".iq, .tcell");
+  if(!btn) return;
+  const q=btn.dataset.q;
+  if(q) obreAnalisiAlXat(q);
+});
+
+const pct2=v=>(v>=0?"+":"")+v.toFixed(2)+"%";
+
+function insights(visible){
+  const held=(visible||[]).filter(d=>Number.isFinite(d.valueTotal)&&d.valueTotal>0);
+  const total=held.reduce((s,d)=>s+d.valueTotal,0);
+  const scope=document.getElementById("insights-scope");
+  const filtrat=held.length!==D.length;
+  scope.textContent=filtrat
+    ? `· ${held.length} de ${D.length} posicions (filtre actiu)`
+    : "· tota la cartera";
+
+  if(!total){
+    ["ic-conc","ic-alloc","ic-tmap","ic-over"].forEach(id=>{
+      document.getElementById(id).innerHTML=
+        `<h3>Sense dades</h3><p class="isub">Cap posició amb valor de mercat dins del filtre actual.</p>`;
+    });
+    return;
+  }
+
+  const w=d=>d.valueTotal/total*100;
+  cardConcentration(held,total,w);
+  cardAllocation(held,total,w);
+  cardTreemap(held,total,w);
+  cardOverlap(held,total,w);
+}
+
+// --- 1. Risc de concentració -----------------------------------------------
+function cardConcentration(held,total,w){
+  const sorted=[...held].sort((a,b)=>b.valueTotal-a.valueTotal);
+  const top=sorted.slice(0,5);
+  const topShare=top.reduce((s,d)=>s+w(d),0);
+  const hhi=sorted.reduce((s,d)=>s+w(d)**2,0);      // 0–10.000
+  const effectiu=10000/hhi;                          // posicions equivalents
+  const max=w(sorted[0]);
+
+  const nivell = hhi>2500 ? {t:"alta",c:"neg"} : hhi>1500 ? {t:"moderada",c:"base"} : {t:"continguda",c:"pos"};
+
+  const bars=top.map(d=>{
+    const p=w(d);
+    return `<div class="crow">
+      <div class="ck" title="${esc(d.name)}">${esc(d.ticker)}</div>
+      <div class="cb"><i style="width:${(p/max*100).toFixed(1)}%"></i></div>
+      <div class="cv">${p.toFixed(1)}%</div>
+    </div>`;
+  }).join("");
+
+  const narr = `<b>Concentració ${nivell.t}.</b> Les ${top.length} posicions principals sumen el
+    <b>${topShare.toFixed(1)}%</b> del valor de la selecció. La més gran és
+    <b>${esc(sorted[0].ticker)}</b> amb un ${max.toFixed(1)}%${sorted[1]?`, seguida de <b>${esc(sorted[1].ticker)}</b> amb un ${w(sorted[1]).toFixed(1)}%`:""}.
+    Encara que hi hagi ${held.length} línies obertes, la distribució de pesos equival a una cartera de
+    <b>${effectiu.toFixed(1)} posicions</b> de mida idèntica: aquesta és la diversificació efectiva real,
+    no el recompte de productes.`;
+
+  document.getElementById("ic-conc").innerHTML=`
+    <h3>Risc de concentració</h3>
+    <p class="isub">Pes de cada posició sobre el valor de mercat actual</p>
+    <div class="icard-body">
+      <div>${bars}
+        <div class="cmeta">
+          <div><strong class="${nivell.c}">${topShare.toFixed(1)}%</strong>top ${top.length}</div>
+          <div><strong>${effectiu.toFixed(1)}</strong>posicions efectives</div>
+          <div><strong>${f(hhi,0)}</strong>índex HHI</div>
+        </div>
+      </div>
+      <div><p class="inarr">${narr}</p>
+        <p class="inote">L'HHI és la suma dels pesos al quadrat. Per convenció es considera concentració
+        alta per damunt de 2.500 i baixa per sota de 1.500. És una mesura de repartiment, no de risc:
+        no té en compte què fa cada actiu ni com es correlacionen.</p>
+      </div>
+    </div>
+    ${questionsHtml([
+      `Quina diversificació real m'aporta ${sorted[0].ticker}, que ja pesa un ${max.toFixed(1)}% de la cartera?`,
+      `Com puc reduir el pes de les 5 principals posicions (${topShare.toFixed(1)}% del total) sense desestabilitzar la cartera ni generar tributació innecessària?`
+    ])}`;
+}
+
+// --- 2. Distribució per classe d'actiu -------------------------------------
+function cardAllocation(held,total,w){
+  const agg={};
+  held.forEach(d=>{
+    const k=assetClass(d);
+    (agg[k]=agg[k]||{pes:0,tickers:[]}).pes+=w(d);
+    agg[k].tickers.push(d.ticker);
+  });
+  const slices=Object.entries(agg)
+    .map(([k,v])=>({k,...v,...CLASS_META[k]}))
+    .sort((a,b)=>b.pes-a.pes);
+
+  const r=54, circ=2*Math.PI*r;
+  let off=0;
+  const arcs=slices.map(s=>{
+    const len=circ*s.pes/100;
+    const el=`<circle r="${r}" cx="70" cy="70" fill="none" stroke="${s.color}" stroke-width="23"
+      stroke-dasharray="${len.toFixed(2)} ${(circ-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"
+      transform="rotate(-90 70 70)"><title>${esc(s.label)}: ${s.pes.toFixed(1)}%</title></circle>`;
+    off+=len; return el;
+  }).join("");
+
+  const leg=slices.map(s=>
+    `<div><i style="background:${s.color}"></i><span title="${esc(s.tickers.join(", "))}">${esc(s.label)}</span><b>${s.pes.toFixed(1)}%</b></div>`
+  ).join("");
+
+  const rf=agg.rf?.pes||0;
+  const rv=slices.filter(s=>s.k.startsWith("rv")).reduce((s,x)=>s+x.pes,0);
+  const dom=slices[0];
+
+  const narr=`<b>Composició de la cartera.</b> El <b>${rv.toFixed(1)}%</b> del valor està en renda variable
+    i el <b>${rf.toFixed(1)}%</b> en renda fixa. El bloc més gran és <b>${esc(dom.label.toLowerCase())}</b>
+    amb un ${dom.pes.toFixed(1)}% (${esc(dom.tickers.join(", "))}).
+    ${rf<10
+      ? `Amb menys d'un 10% de renda fixa, pràcticament no hi ha coixí per amortir una caiguda de borsa:
+         el resultat de la cartera depèn gairebé del tot del cicle de la renda variable.`
+      : `El pes de renda fixa aporta un coixí parcial davant d'una caiguda de la renda variable.`}`;
+
+  document.getElementById("ic-alloc").innerHTML=`
+    <h3>Distribució per classe d'actiu</h3>
+    <p class="isub">Agrupació segons el grup de risc de cada producte</p>
+    <div class="icard-body">
+      <div class="donut-wrap">
+        <svg class="donut" viewBox="0 0 140 140" role="img" aria-label="Distribució per classe d'actiu">${arcs}</svg>
+        <div class="dleg">${leg}</div>
+      </div>
+      <div><p class="inarr">${narr}</p>
+        <p class="inote">La classificació surt del grup assignat a cada producte al model d'escenaris,
+        no d'una lectura de la cartera subjacent de cada fons. Un fons global conté EUA, Europa i
+        emergents alhora; per veure aquesta exposició creuada, mira el bloc d'exposició real agregada
+        que tens just a sota.</p>
+      </div>
+    </div>
+    ${questionsHtml([
+      `Tinc un ${rv.toFixed(1)}% en renda variable i un ${rf.toFixed(1)}% en renda fixa. Com afecta aquesta distribució a la volatilitat i a l'escenari advers de la cartera?`,
+      `Quines opcions de renda fixa o monetari podria estudiar per a un traspàs des dels fons, i quin pes tindria sentit donar-los?`
+    ])}`;
+}
+
+// --- 3. Treemap de rendiment ------------------------------------------------
+function worstRatio(row,short){
+  const sum=row.reduce((s,x)=>s+x.area,0);
+  if(sum<=0||short<=0) return Infinity;
+  const gruix=sum/short;
+  let pitjor=0;
+  for(const x of row){
+    const llarg=x.area/gruix;
+    if(llarg<=0) return Infinity;
+    pitjor=Math.max(pitjor,gruix/llarg,llarg/gruix);
+  }
+  return pitjor;
+}
+
+// Algorisme squarified: reparteix l'àrea mantenint els rectangles el més
+// quadrats possible, que és el que els fa comparables a ull.
+function squarify(items,x,y,w,h,out){
+  if(!items.length) return;
+  const short=Math.min(w,h);
+  if(short<=0){ items.forEach(it=>out.push({...it,x,y,w:0,h:0})); return; }
+  const rest=items.slice();
+  const row=[rest.shift()];
+  while(rest.length && worstRatio([...row,rest[0]],short)<=worstRatio(row,short)) row.push(rest.shift());
+  const gruix=row.reduce((s,x2)=>s+x2.area,0)/short;
+  if(w>=h){
+    let cy=y;
+    row.forEach(it=>{const l=it.area/gruix; out.push({...it,x,y:cy,w:gruix,h:l}); cy+=l;});
+    squarify(rest,x+gruix,y,w-gruix,h,out);
+  }else{
+    let cx=x;
+    row.forEach(it=>{const l=it.area/gruix; out.push({...it,x:cx,y,w:l,h:gruix}); cx+=l;});
+    squarify(rest,x,y+gruix,w,h-gruix,out);
+  }
+}
+
+function perfColor(v){
+  if(!Number.isFinite(v)) return {bg:"#eaeef2",fg:"#57606a"};
+  const t=Math.min(1,Math.abs(v)/2.5);
+  const mix=(a,b)=>`rgb(${a.map((c,i)=>Math.round(c+(b[i]-c)*t)).join(",")})`;
+  if(v>0) return {bg:mix([236,248,240],[122,206,146]),fg:"#0a5c28"};
+  if(v<0) return {bg:mix([253,240,238],[247,164,156]),fg:"#8a1620"};
+  return {bg:"#eaeef2",fg:"#57606a"};
+}
+
+function cardTreemap(held,total,w){
+  const items=[...held].sort((a,b)=>b.valueTotal-a.valueTotal)
+    .map(d=>({d,area:d.valueTotal/total}));
+  const W=1000,H=340;
+  items.forEach(it=>it.area*=W*H);
+  const out=[];
+  squarify(items,0,0,W,H,out);
+
+  const cells=out.map(c=>{
+    const d=c.d, v=d.periodChangePct;
+    const col=perfColor(v);
+    const petit=c.w<86||c.h<52;
+    const quan=d.periodLabel==="Setmana"?"aquesta setmana":"avui";
+    const q=`Analitza la posició ${d.ticker} (${d.name}): pesa un ${w(d).toFixed(1)}% de la cartera i `+
+      (Number.isFinite(v)?`${quan} es mou un ${pct2(v)}`:`no en tinc variació de període`)+
+      `. Explica'm què hi ha darrere d'aquest moviment, si encaixa amb la meva tesi a llarg termini i quines alternatives tindria. Consulta informació pública actual i cita les fonts.`;
+    return `<div class="tcell${petit?" small":""}" role="button" tabindex="0"
+      style="left:${c.x/W*100}%;top:${c.y/H*100}%;width:${c.w/W*100}%;height:${c.h/H*100}%;background:${col.bg};color:${col.fg}"
+      data-q="${esc(q)}" title="${esc(d.ticker)} · ${esc(d.name)} · ${w(d).toFixed(1)}% de la cartera${Number.isFinite(v)?` · ${esc(d.periodLabel)} ${pct2(v)}`:""}">
+      <div class="tt">${esc(d.ticker)}</div>
+      <div class="tn">${esc(d.name)}</div>
+      <div class="tp">${Number.isFinite(v)?pct2(v):"n/d"}</div>
+    </div>`;
+  }).join("");
+
+  // Els períodes no són comparables: els ETF porten variació diària i els fons setmanal.
+  const grups=[["Avui","ETF"],["Setmana","Fons"]].map(([lab,tip])=>{
+    const g=held.filter(d=>d.type===tip&&Number.isFinite(d.periodChangePct));
+    if(!g.length) return null;
+    const val=g.reduce((s,d)=>s+d.valueTotal,0);
+    const mitjana=g.reduce((s,d)=>s+d.periodChangePct*d.valueTotal,0)/val;
+    const euros=g.reduce((s,d)=>s+(d.periodChangeValue||0),0);
+    return {lab,tip,n:g.length,mitjana,euros,
+      millor:[...g].sort((a,b)=>b.periodChangePct-a.periodChangePct)[0],
+      pitjor:[...g].sort((a,b)=>a.periodChangePct-b.periodChangePct)[0]};
+  }).filter(Boolean);
+
+  const resum=grups.map(g=>
+    `<b>${esc(g.tip)} · ${g.lab.toLowerCase()}:</b> ${pct2(g.mitjana)} de mitjana ponderada
+     (${g.euros>=0?"+":""}${f(g.euros,0)} €), amb <b>${esc(g.millor.ticker)}</b> al capdavant
+     (${pct2(g.millor.periodChangePct)}) i <b>${esc(g.pitjor.ticker)}</b> al final
+     (${pct2(g.pitjor.periodChangePct)}).`
+  ).join(" ");
+
+  const tots=grups.flatMap(g=>[g.millor,g.pitjor]);
+  const millorGlobal=[...tots].sort((a,b)=>b.periodChangePct-a.periodChangePct)[0];
+  const pitjorGlobal=[...tots].sort((a,b)=>a.periodChangePct-b.periodChangePct)[0];
+
+  document.getElementById("ic-tmap").innerHTML=`
+    <h3>Les teves inversions, visualitzades</h3>
+    <p class="isub">La mida indica el pes a la cartera; el color, la variació del període. Clica qualsevol quadre per analitzar-lo.</p>
+    <div class="tmap">${cells}</div>
+    <div class="tlegend">
+      <span><i style="background:rgb(122,206,146)"></i>puja</span>
+      <span><i style="background:#eaeef2"></i>pla o sense dada</span>
+      <span><i style="background:rgb(247,164,156)"></i>baixa</span>
+      <span>La intensitat satura a partir de ±2,5%.</span>
+    </div>
+    <p class="inarr" style="margin-top:14px">${resum||"No hi ha variacions de període disponibles per a la selecció actual."}</p>
+    <p class="inote">Els dos períodes no són comparables entre ells: els ETF porten la variació respecte al
+    tancament anterior i els fons, respecte a l'última captura setmanal. Els imports dels ETF en dòlars són
+    aproximats perquè no incorporen tota la variació intradia del tipus de canvi.</p>
+    ${millorGlobal&&pitjorGlobal?questionsHtml([
+      `Què explica que ${millorGlobal.ticker} (${pct2(millorGlobal.periodChangePct)}) i ${pitjorGlobal.ticker} (${pct2(pitjorGlobal.periodChangePct)}) es moguin en direccions oposades? Busca notícies recents i cita les fonts.`,
+      `Aquests moviments de curt termini canvien alguna cosa de la tesi a llarg termini de la cartera, o són soroll que convé ignorar?`
+    ]):""}`;
+}
+
+// --- 4. Solapament i correlació --------------------------------------------
+function cardOverlap(held,total,w){
+  const meta=P?.meta?.scenarios;
+  const perTicker=Object.fromEntries(held.map(d=>[d.ticker,d]));
+  const documentats=new Map();
+  DUPS.forEach(p=>{
+    if(perTicker[p.a]&&perTicker[p.b]) documentats.set([p.a,p.b].sort().join("|"),p.t);
+  });
+
+  // Parells del mateix grup de risc que no estan documentats com a solapament.
+  const parells=[];
+  for(let i=0;i<held.length;i++){
+    for(let j=i+1;j<held.length;j++){
+      const a=held[i], b=held[j];
+      const clau=[a.ticker,b.ticker].sort().join("|");
+      const doc=documentats.get(clau);
+      const mateixGrup=a.scenario&&b.scenario&&a.scenario.group===b.scenario.group;
+      if(!doc&&!mateixGrup) continue;
+      const rho=(meta&&a.scenario&&b.scenario)?scenarioCorrelation(a,b,meta.correlations):null;
+      // La duplicació està limitada per la posició més petita del parell: dues
+      // línies només se solapen fins on arriba la menor. Ho pondero per la
+      // correlació assumida, que és el que fa que el solapament sigui efectiu.
+      const menor=Math.min(w(a),w(b));
+      parells.push({a,b,doc,mateixGrup,rho,pes:w(a)+w(b),menor,duplicat:menor*(rho??0.5)});
+    }
+  }
+  parells.sort((x,y)=>y.duplicat-x.duplicat);
+  const top=parells.slice(0,4);
+
+  const el=document.getElementById("ic-over");
+  if(!top.length){
+    el.innerHTML=`
+      <h3>Solapament i correlació</h3>
+      <p class="isub">Posicions que es trepitgen entre elles</p>
+      <p class="inarr">Dins del filtre actual no hi ha cap parell documentat com a solapament ni cap parella
+      que comparteixi grup de risc. Això no descarta solapaments dins de la cartera subjacent dels fons.</p>`;
+    return;
+  }
+
+  const maxDup=top[0].duplicat||1;
+  const files=top.map(p=>`
+    <div class="orow">
+      <div class="oh"><span>${esc(p.a.ticker)} ↔ ${esc(p.b.ticker)}</span>
+        <em>≈${p.duplicat.toFixed(1)}% duplicat · pesen ${p.pes.toFixed(1)}%${p.rho!=null?` · correlació ${p.rho.toFixed(2)}`:""}</em></div>
+      <div class="ob"><i style="width:${(p.duplicat/maxDup*100).toFixed(1)}%"></i></div>
+      <div class="od">${p.doc?p.doc:`Comparteixen grup de risc <b>${esc(p.a.scenario.group)}</b> al model d'escenaris: el model assumeix que es mouen gairebé alhora.`}</div>
+    </div>`).join("");
+
+  const primer=top[0];
+  const nDoc=top.filter(p=>p.doc).length;
+
+  const narr=`<b>Exposició duplicada.</b> He detectat <b>${parells.length} ${parells.length===1?"parella":"parelles"}</b>
+    de posicions que es trepitgen, ${nDoc?`de les quals ${nDoc} ${nDoc===1?"està documentada":"estan documentades"} com a solapament explícit`:"cap documentada explícitament, totes per grup de risc compartit"}.
+    La més rellevant és <b>${esc(primer.a.ticker)} ↔ ${esc(primer.b.ticker)}</b>: pesen un ${primer.pes.toFixed(1)}%
+    entre les dues${primer.rho!=null?` i el model els assumeix una correlació de ${primer.rho.toFixed(2)}`:""},
+    cosa que equival a repetir aproximadament un <b>${primer.duplicat.toFixed(1)}%</b> de la cartera.
+    Quan dues posicions es mouen alhora, tenir-ne dues no diversifica: només reparteix la mateixa aposta.`;
+
+  el.innerHTML=`
+    <h3>Solapament i correlació</h3>
+    <p class="isub">Posicions que es trepitgen entre elles, ordenades per exposició duplicada estimada</p>
+    <div class="icard-body">
+      <div>${files}</div>
+      <div><p class="inarr">${narr}</p>
+        <p class="inote">El percentatge duplicat és una estimació: agafa la menor de les dues posicions
+        —la duplicació no pot superar-la— i la pondera per la correlació assumida. Les correlacions són
+        hipòtesis del model d'escenaris, no mesures observades sobre preus reals. Els solapaments
+        documentats provenen de la configuració de la cartera; els altres s'infereixen del grup de risc
+        compartit i poden ser més febles del que semblen.</p>
+      </div>
+    </div>
+    ${questionsHtml([
+      `${primer.a.ticker} i ${primer.b.ticker} pesen un ${primer.pes.toFixed(1)}% entre les dues i es trepitgen. Quina part de l'exposició és realment duplicada i quines opcions tindria per netejar-la?`,
+      `Quins d'aquests solapaments podria corregir només amb traspassos entre fons, sense generar tributació?`
+    ])}`;
+}
+
+let wizStep = 0;
+let wizAnswers = { risk: null, horizon: null, thematic: null, simplify: null };
+
+function buildSim(){
+  initWiz();
+}
+
+function initWiz() {
+  wizStep = 0;
+  wizAnswers = { risk: null, horizon: null, thematic: null, simplify: null };
+  renderWiz();
+}
+
+function selectWizOption(key, val) {
+  wizAnswers[key] = val;
+  renderWiz();
+}
+
+const WIZ_STEPS = [
+  {
+    title: "1. Perfil de risc",
+    q: "Tria el perfil de risc que millor s'ajusta a la teva tolerància a la volatilitat:",
+    key: "risk",
+    options: [
+      { id: "conservador", label: "Conservador", desc: "Prioritza la preservació del capital. Renda fixa predominant (fons Creand de RF/monetaris de baix risc)." },
+      { id: "moderat", label: "Moderat", desc: "Equilibri clàssic de mercat. Més pes core en indexats de renda variable, amb coixí de renda fixa." },
+      { id: "decidit", label: "Decidit / Creixement", desc: "Orientat a maximitzar rendibilitat a llarg termini. Pes màxim en renda variable global i tecnologia." }
+    ]
+  },
+  {
+    title: "2. Horitzó temporal",
+    q: "Quin és l'horitzó temporal d'aquesta inversió?",
+    key: "horizon",
+    options: [
+      { id: "curt", label: "Curt termini (< 3 anys)", desc: "Necessitat d'estabilitat i seguretat patrimonial propera. Més pes a renda fixa i líquid." },
+      { id: "mig", label: "Mitjà termini (3-7 anys)", desc: "Mix estàndard de renda variable i renda fixa amb un equilibri de cicle mig." },
+      { id: "llarg", label: "Llarg termini (> 7 anys)", desc: "Permet absorbir volatilitat i cicles. Cerca del creixement compost de llarg termini." }
+    ]
+  },
+  {
+    title: "3. Enfocament temàtic",
+    q: "Quina àrea de creixement prefereixes potenciar (satèl·lits)?",
+    key: "thematic",
+    options: [
+      { id: "tech", label: "Tecnologia, IA i Blockchain", desc: "Major exposició a satèl·lits de creixement tecnològic i disrupció." },
+      { id: "economia", label: "Economia Real, Defensa i Energia", desc: "Enfocament en sectors tangibles, geopolítica, seguretat i infraestructures." },
+      { id: "core", label: "Indexació Core Global (Sense satèl·lits)", desc: "Sense apostes de sector. Centrat en capturar la mitjana del mercat mundial." }
+    ]
+  },
+  {
+    title: "4. Grau de simplificació",
+    q: "Vols reduir solapaments i mantenir la gestió simple?",
+    key: "simplify",
+    options: [
+      { id: "si", label: "Sí, simplificació màxima (Recomanat)", desc: "Concentrar en fons indexats Vanguard (Global, Emergents i Small Caps). Esborrar ETFs temàtics duplicats per simplificar." },
+      { id: "no", label: "No, mantenir fons satèl·lits actius", desc: "Mantenir les línies temàtiques i sectorials obertes tot i tenir solapaments parcials." }
+    ]
+  }
+];
+
+function renderWiz() {
+  const body = document.getElementById("wiz-body");
+  const prog = document.getElementById("wiz-prog");
+
+  if (wizStep < WIZ_STEPS.length) {
+    const st = WIZ_STEPS[wizStep];
+    prog.textContent = `Pas ${wizStep + 1} de ${WIZ_STEPS.length}`;
+    
+    let html = `<p style="font-size:13.5px;color:var(--txt);margin:0 0 12px">${esc(st.q)}</p>`;
+    html += `<div class="wiz-grid">`;
+    st.options.forEach(opt => {
+      const isSel = wizAnswers[st.key] === opt.id;
+      html += `
+        <div class="wiz-card ${isSel ? 'selected' : ''}" onclick="selectWizOption('${st.key}', '${opt.id}')">
+          <div class="dot-sel"></div>
+          <h3 style="margin:0 0 6px;font-size:14px;font-weight:600;color:var(--txt)">${esc(opt.label)}</h3>
+          <p>${esc(opt.desc)}</p>
+        </div>`;
+    });
+    html += `</div>`;
+
+    // Botons
+    html += `
+      <div class="wiz-actions">
+        <button class="wiz-btn" onclick="prevWiz()" ${wizStep === 0 ? 'disabled' : ''}>Enrere</button>
+        <button class="wiz-btn primary" onclick="nextWiz()" ${wizAnswers[st.key] === null ? 'disabled' : ''}>Següent</button>
+      </div>`;
+    body.innerHTML = html;
+  } else {
+    prog.textContent = "Proposta generada";
+    calculateProposal();
+  }
+}
+
+function prevWiz() {
+  if (wizStep > 0) {
+    wizStep--;
+    renderWiz();
+  }
+}
+
+function nextWiz() {
+  if (wizStep < WIZ_STEPS.length) {
+    wizStep++;
+    renderWiz();
+  }
+}
+
+function calculateProposal() {
+  const body = document.getElementById("wiz-body");
+  const totalVal = D.reduce((s,d)=>s+(d.valueTotal||0),0)||1;
+
+  const target = {};
+  D.forEach(d => target[d.ticker] = 0);
+
+  // 1. Renda fixa (CREAND RF)
+  let rf = 0;
+  if (wizAnswers.risk === 'conservador') {
+    rf = wizAnswers.horizon === 'curt' ? 65 : 45;
+  } else if (wizAnswers.risk === 'moderat') {
+    rf = wizAnswers.horizon === 'curt' ? 45 : 25;
+  } else {
+    rf = wizAnswers.horizon === 'curt' ? 25 : 10;
+  }
+
+  // 2. Global Equities Core (Vanguard Global)
+  let global = 0;
+  if (wizAnswers.risk === 'conservador') {
+    global = wizAnswers.horizon === 'curt' ? 20 : 35;
+  } else if (wizAnswers.risk === 'moderat') {
+    global = wizAnswers.horizon === 'curt' ? 35 : 45;
+  } else {
+    global = wizAnswers.horizon === 'curt' ? 45 : 55;
+  }
+
+  // 3. Emergents (Vanguard EM)
+  let em = 0;
+  if (wizAnswers.risk === 'conservador') {
+    em = 5;
+  } else if (wizAnswers.risk === 'moderat') {
+    em = 10;
+  } else {
+    em = 15;
+  }
+
+  // 4. Small Caps (Vanguard Small Cap)
+  let small = 0;
+  if (wizAnswers.risk === 'conservador') {
+    small = 5;
+  } else if (wizAnswers.risk === 'moderat') {
+    small = 10;
+  } else {
+    small = 12;
+  }
+
+  let totalAssignat = rf + global + em + small;
+  let restant = 100 - totalAssignat;
+
+  let techShare = 0;
+  let defShare = 0;
+  let hcShare = 5; // Mínim de salut per defecte
+
+  if (wizAnswers.thematic === 'tech') {
+    techShare = restant * 0.7;
+    defShare = restant * 0.1;
+    hcShare += restant * 0.2;
+  } else if (wizAnswers.thematic === 'economia') {
+    techShare = restant * 0.1;
+    defShare = restant * 0.7;
+    hcShare += restant * 0.2;
+  } else {
+    global += restant * 0.6;
+    em += restant * 0.2;
+    small += restant * 0.2;
+  }
+
+  if (wizAnswers.simplify === 'si') {
+    global += techShare * 0.6;
+    em += techShare * 0.2 + defShare * 0.1;
+    small += techShare * 0.2 + defShare * 0.2;
+    rf += defShare * 0.7;
+
+    target['VG GLOBAL'] = global;
+    target['VG EM'] = em;
+    target['VG SMALL'] = small;
+    target['CREAND RF'] = rf;
+    target['POLAR HC'] = hcShare;
+  } else {
+    target['CREAND RF'] = rf;
+    target['POLAR HC'] = hcShare;
+    
+    target['VG GLOBAL'] = global * 0.80;
+    target['IUES'] = global * 0.10;
+    target['CNDX'] = global * 0.10;
+
+    target['VG EM'] = em * 0.75;
+    target['XMME'] = em * 0.25;
+
+    target['VG SMALL'] = small * 0.75;
+    target['CSEMUS'] = small * 0.25;
+
+    if (techShare > 0) {
+      target['XAID'] = techShare * 0.70;
+      target['BLKC'] = techShare * 0.30;
+    }
+    if (defShare > 0) {
+      target['DEFS'] = defShare * 0.40;
+      target['BRIJ'] = defShare * 0.20;
+      target['INFR'] = defShare * 0.20;
+      target['XDW0'] = defShare * 0.20;
+    }
+  }
+
+  // Normalitzar
+  let sumProposed = Object.values(target).reduce((s,x)=>s+x,0)||1;
+  for (let k in target) {
+    target[k] = (target[k] / sumProposed) * 100;
+  }
+
+  let html = `
+    <p style="font-size:12.5px;color:var(--dim);margin:0 0 14px;line-height:1.5">
+      Comparativa detallada de l'assignació real de mercat actual amb els teus objectius suggerits:
+    </p>
+    <div class="table-wrap">
+      <table style="font-size:12.5px;margin-bottom:18px">
+        <thead><tr>
+          <th style="text-align:left">Ticker</th>
+          <th>Pes actual</th>
+          <th>Pes proposat</th>
+          <th>Desviació</th>
+        </tr></thead>
+        <tbody>`;
+
+  D.forEach(d => {
+    const actPct = ((d.valueTotal||0)/totalVal)*100;
+    const propPct = target[d.ticker]||0;
+    const diffPct = propPct - actPct;
+    const diffVal = totalVal * (diffPct/100);
+
+    html += `
+      <tr>
+        <td style="text-align:left">
+          <b>${esc(d.ticker)}</b> <span class="tag ${tagClass(d.type)}">${d.type}</span>
+        </td>
+        <td>${actPct.toFixed(1)}%</td>
+        <td>${propPct.toFixed(1)}%</td>
+        <td class="${diffPct>=0.5?'pos':(diffPct<=-0.5?'neg':'')}">
+          ${diffPct>=0?'+':''}${diffPct.toFixed(1)}% (${diffVal>=0?'+':''}${f(diffVal,0)} €)
+        </td>
+      </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+
+  // Accions de reequilibri
+  html += `<h4 style="font-size:12px;text-transform:uppercase;color:var(--dim);margin:14px 0 8px">Accions recomanades per reequilibrar</h4><ul style="padding-left:20px;font-size:12.5px;line-height:1.65;margin:0 0 18px;color:var(--dim)">`;
+  
+  const fonsDiffs = D.filter(d => d.type==='Fons').map(d => {
+    const actPct = ((d.valueTotal||0)/totalVal)*100;
+    const propPct = target[d.ticker]||0;
+    return { ticker: d.ticker, diffVal: totalVal * ((propPct - actPct)/100) };
+  });
+
+  const fonsSellers = fonsDiffs.filter(x => x.diffVal < -1000).sort((a,b)=>a.diffVal-b.diffVal);
+  const fonsBuyers = fonsDiffs.filter(x => x.diffVal > 1000).sort((a,b)=>b.diffVal-a.diffVal);
+
+  if (fonsSellers.length && fonsBuyers.length) {
+    let sIdx = 0;
+    fonsBuyers.forEach(buyer => {
+      let bNeed = buyer.diffVal;
+      while (bNeed > 500 && sIdx < fonsSellers.length) {
+        let seller = fonsSellers[sIdx];
+        let sAvail = Math.abs(seller.diffVal);
+        let amount = Math.min(bNeed, sAvail);
+        
+        html += `<li>🔑 <b style="color:var(--txt)">Traspàs gratuït</b> (sense impostos): traspassa <b>${f(amount,0)} €</b> de <span class="tag fons">${seller.ticker}</span> a <span class="tag fons">${buyer.ticker}</span>.</li>`;
+        
+        bNeed -= amount;
+        seller.diffVal += amount;
+        if (Math.abs(seller.diffVal) < 500) sIdx++;
+      }
+    });
+  }
+
+  D.filter(d => d.type==='ETF').forEach(d => {
+    const actPct = ((d.valueTotal||0)/totalVal)*100;
+    const propPct = target[d.ticker]||0;
+    const diffVal = totalVal * ((propPct - actPct)/100);
+    if (diffVal < -1000) {
+      html += `<li>⚠️ <b style="color:var(--txt)">Venda d'ETF (tributable)</b>: ven <b>${f(Math.abs(diffVal),0)} €</b> de <span class="tag etf">${d.ticker}</span>. Això generarà guanys/pèrdues patrimonials en IRPF.</li>`;
+    } else if (diffVal > 1000) {
+      html += `<li>🛒 <b style="color:var(--txt)">Compra d'ETF</b>: compra <b>${f(diffVal,0)} €</b> de <span class="tag etf">${d.ticker}</span> per assolir el pes objectiu.</li>`;
+    }
+  });
+
+  html += `</ul>`;
+
+  html += `
+    <div class="wiz-actions">
+      <button class="wiz-btn" onclick="initWiz()">Reiniciar definidor</button>
+    </div>`;
+
+  body.innerHTML = html;
+}
+
+
+function exposure(visiblePositions=D){
+  // Ponderat per valor de mercat real de cada posició
+  const totalVal = visiblePositions.reduce((s,d)=>s+(d.valueTotal||0),0)||1;
+  const agg={};
+  visiblePositions.forEach(d=>{
+    const w=(d.valueTotal||0)/totalVal*100;
+    if(!w) return;
+    for(const k in d.ex) agg[k]=(agg[k]||0)+w*d.ex[k]/100;
+  });
+  const sum=Object.values(agg).reduce((s,x)=>s+x,0)||1;
+  const ordenat=Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+  const el=document.getElementById("exp"); el.innerHTML="";
+  ordenat.forEach(([k,v])=>{
+    const p=v/sum*100;
+    const r=document.createElement("div"); r.className="exprow";
+    r.innerHTML=`<div>${EXLAB[k]}</div><div class="bar"><i style="width:${p}%;background:${EXCOL[k]}"></i></div><div class="v">${p.toFixed(1)}%</div>`;
+    el.appendChild(r);
+  });
+
+  // Narrativa i preguntes: només a la pestanya d'anàlisi.
+  const narr=document.getElementById("exp-narr");
+  const qs=document.getElementById("exp-qs");
+  const src=document.getElementById("expsrc");
+  if(!narr||!qs) return;
+
+  // Quina part del valor té desglossament d'exposició declarat.
+  const ambEx=visiblePositions.filter(d=>d.ex&&Object.keys(d.ex).length);
+  const cobertura=ambEx.reduce((s,d)=>s+(d.valueTotal||0),0)/totalVal*100;
+  src.textContent=cobertura<99.5?`· ${cobertura.toFixed(0)}% del valor amb desglossament declarat`:"";
+
+  if(!ordenat.length){
+    narr.innerHTML=`<p class="inarr">Cap posició de la selecció actual porta desglossament d'exposició declarat.</p>`;
+    qs.innerHTML="";
+    return;
+  }
+
+  const p=k=>agg[k]/sum*100;
+  const [k1]=ordenat[0];
+  const tres=ordenat.slice(0,3);
+  const tresPes=tres.reduce((s,[k])=>s+p(k),0);
+  const eua=(agg.euaaltres||0)+(agg.techus||0)+(agg.semis||0);
+  const euaPes=eua/sum*100;
+  const rf=p("rendafixa")||0;
+
+  narr.innerHTML=`
+    <p class="inarr"><b>On està realment invertida la cartera.</b> Aquesta lectura travessa els productes:
+      un fons global no compta com a "global", sinó repartit entre els sectors i regions que conté.
+      L'exposició més gran és <b>${esc(EXLAB[k1])}</b> amb un ${p(k1).toFixed(1)}%, i les tres primeres
+      (${tres.map(([k])=>esc(EXLAB[k])).join(", ")}) sumen un <b>${tresPes.toFixed(1)}%</b>.
+      Sumant els tres blocs nord-americans —EUA altres sectors, Tech EUA i semis— l'exposició als
+      Estats Units és del <b>${euaPes.toFixed(1)}%</b>${rf?`, davant d'un ${rf.toFixed(1)}% de renda fixa`:""}.</p>
+    <p class="inote">Els percentatges surten del camp <code>ex</code> de cada producte a
+      <code>market_cache.json</code>, que és una foto de la composició declarada, no una lectura en viu
+      de la cartera del fons. Les posicions sense desglossament no hi apareixen, i el total es
+      renormalitza al 100% del que sí que està cobert.</p>`;
+
+  qs.innerHTML=questionsHtml([
+    `La meva exposició real als Estats Units és del ${euaPes.toFixed(1)}% sumant EUA altres sectors, Tech EUA i semis. És excessiva per a un inversor resident a Espanya, i com la podria reduir?`,
+    `${EXLAB[k1]} és la meva exposició més gran amb un ${p(k1).toFixed(1)}%. Quins riscos concrets concentro aquí i quines posicions hi contribueixen més?`
+  ]);
+}
+
+function dups(visiblePositions=D){
+  const el=document.getElementById("dups"); el.innerHTML="";
+  const visibleTickers = new Set(visiblePositions.map(position=>position.ticker));
+  const visibleDuplicates = DUPS.filter(pair=>visibleTickers.has(pair.a)&&visibleTickers.has(pair.b));
+  if(!visibleDuplicates.length){el.innerHTML='<div style="color:var(--dim);font-size:13px">Cap solapament detectat dins del filtre actual.</div>';return;}
+  visibleDuplicates.forEach(p=>{
+    const d=document.createElement("div"); d.className="dup";
+    d.innerHTML=`<b>${esc(p.a)} ↔ ${esc(p.b)}</b> — ${p.t}`;
+    el.appendChild(d);
+  });
+}
+
+// Pestanyes. Els filtres de categoria, tipus i cerca són compartits; l'horitzó
+// només afecta els escenaris, així que s'amaga fora de la pestanya Cartera.
+function mostraPestanya(nom){
+  document.querySelectorAll(".tab").forEach(b=>{
+    const actiu=b.dataset.tab===nom;
+    b.classList.toggle("on",actiu);
+    b.setAttribute("aria-selected",String(actiu));
+  });
+  document.getElementById("tab-cartera").hidden = nom!=="cartera";
+  document.getElementById("tab-analisi").hidden = nom!=="analisi";
+  document.getElementById("tab-noticies").hidden = nom!=="noticies";
+  document.getElementById("tab-consell").hidden = nom!=="consell";
+  document.getElementById("hz").hidden = nom!=="cartera";
+  // Chart.js no es redimensiona mentre el contenidor està amagat.
+  if(nom==="cartera" && CH) CH.resize();
+  if(nom==="noticies") carregaNoticies();
+}
+
+document.querySelectorAll(".tab").forEach(b=>{
+  b.onclick=()=>mostraPestanya(b.dataset.tab);
+});
+
+document.getElementById('refresh-news').onclick=()=>carregaNoticies();
+document.getElementById('generate-advice').onclick=()=>carregaConsell();
+document.getElementById('news-product').onchange=()=>carregaNoticies();
+document.getElementById('news-type').onchange=()=>carregaNoticies();
+
+// Controls
+document.querySelectorAll("#tbl-pos th[data-k], #tbl-prev th[data-k]").forEach(th=>{
+  th.onclick=()=>{
+    const k=th.dataset.k;
+    if(sortK===k) sortA=!sortA; else {sortK=k;sortA=k==="ticker";}
+    document.querySelectorAll("#tbl-pos th, #tbl-prev th").forEach(t=>t.classList.remove("sorted","asc"));
+    document.querySelectorAll(`#tbl-pos th[data-k="${sortK}"], #tbl-prev th[data-k="${sortK}"]`).forEach(match=>{
+      match.classList.add("sorted");
+      if(sortA) match.classList.add("asc");
+    });
+    render();
+  };
+});
+document.querySelectorAll("#hz button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#hz button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); hz=+b.dataset.h; render();
+});
+function recarregaNoticiesSiActives(){
+  if(document.getElementById('tab-btn-noticies').classList.contains('on')) carregaNoticies();
+}
+document.getElementById("q").oninput=()=>{render();recarregaNoticiesSiActives();};
+document.getElementById("cat").onchange=()=>{render();recarregaNoticiesSiActives();};
+document.getElementById("typ").onchange=()=>{render();recarregaNoticiesSiActives();};
+document.getElementById("analyse-risk").onclick=()=>obreAnalisiAlXat(
+  `Analitza en profunditat el risc de la selecció actual del dashboard amb l'horitzó ${HZ[hz]}. `+
+  `Interpreta el P10, l'escenari central i el P90, la volatilitat, les concentracions, els solapaments i les correlacions. `+
+  `Explica què podria fallar primer i les limitacions del model. Consulta informació pública actual quan sigui material i cita les fonts. `+
+  `Distingeix dades, hipòtesis i inferències, sense donar una ordre directa de compra o venda.`
+);
+
+// ===========================================================================
+// Xat
+// ===========================================================================
+const CHIPS=[
+  "Quines accions concretes tinc disponibles sense tributar?",
+  "Quins fons de CreAnd podria valorar per a un traspàs?",
+  "Com puc compensar fiscalment guanys i pèrdues aquest any?",
+  "Quin és el solapament real entre les meves posicions i com em perjudica?",
+  "Com hauria de reequilibrar la cartera sense tocar els fons?"
+];
+let hist=[], streaming=false;
+
+const msgs=document.getElementById("msgs"), inp=document.getElementById("inp"), sendBtn=document.getElementById("send");
+
+document.getElementById("fab").onclick=()=>{document.body.classList.add("chat-open");inp.focus();};
+document.getElementById("cls").onclick=()=>{
+  document.body.classList.remove("chat-open", "chat-maximized");
+  document.getElementById("chat").classList.remove("maximized");
+  document.getElementById("max").textContent = "⛶";
+  document.getElementById("max").title = "Maximitzar";
+};
+document.getElementById("max").onclick=()=>{
+  const isMax = document.body.classList.toggle("chat-maximized");
+  document.getElementById("chat").classList.toggle("maximized", isMax);
+  document.getElementById("max").textContent = isMax ? "❐" : "⛶";
+  document.getElementById("max").title = isMax ? "Restaurar" : "Maximitzar";
+};
+document.getElementById("clr").onclick=()=>{hist=[];msgs.innerHTML="";benvinguda();};
+
+fetch("/api/health").then(r=>r.json()).then(h=>{
+  document.getElementById("cst").textContent = h.clau==="configurada" ? `${h.model}${h.web?" · web":""}` : "clau no configurada";
+}).catch(()=>{document.getElementById("cst").textContent="servidor aturat";});
+
+function benvinguda(){
+  addBot(`Bona tarda. Tinc davant les ${D.length} posicions sincronitzades amb Google Sheets, els escenaris, els solapaments i les regles fiscals. També puc investigar notícies i pàgines web públiques, indicant-ne les fonts. Puc analitzar o simular canvis, però no modificaré la fulla.`);
+  renderChips();
+}
+function renderChips(){
+  const c=document.getElementById("chips"); c.innerHTML="";
+  CHIPS.forEach(t=>{
+    const b=document.createElement("button"); b.className="chip"; b.textContent=t;
+    b.onclick=()=>{inp.value=t;enviar();};
+    c.appendChild(b);
+  });
+}
+function addUser(t){
+  const d=document.createElement("div"); d.className="msg user"; d.textContent=t;
+  msgs.appendChild(d); scroll();
+}
+function addBot(html){
+  const d=document.createElement("div"); d.className="msg bot";
+  d.innerHTML='<div class="who">Agent</div><div class="body">'+md(html)+'</div>';
+  msgs.appendChild(d); scroll(); return d.querySelector(".body");
+}
+function addErr(t){
+  const d=document.createElement("div"); d.className="msg err"; d.textContent=t;
+  msgs.appendChild(d); scroll();
+}
+function scroll(){msgs.scrollTop=msgs.scrollHeight;}
+
+// Markdown mínim: títols, negreta, cursiva, codi, llistes, taules, cites.
+function md(src){
+  let s=esc(src);
+  const blocks=s.split(/\n{2,}/).map(b=>{
+    const l=b.split("\n");
+    if(/^\|.*\|/.test(l[0]) && l[1] && /^\|[\s:|-]+\|$/.test(l[1].trim())){
+      const cel=r=>r.trim().replace(/^\||\|$/g,"").split("|").map(x=>x.trim());
+      const head=cel(l[0]).map(c=>`<th>${inline(c)}</th>`).join("");
+      const body=l.slice(2).map(r=>"<tr>"+cel(r).map(c=>`<td>${inline(c)}</td>`).join("")+"</tr>").join("");
+      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+    if(/^\s*[-*]\s+/.test(l[0]))
+      return "<ul>"+l.filter(x=>x.trim()).map(x=>`<li>${inline(x.replace(/^\s*[-*]\s+/,""))}</li>`).join("")+"</ul>";
+    if(/^\s*\d+[.)]\s+/.test(l[0]))
+      return "<ol>"+l.filter(x=>x.trim()).map(x=>`<li>${inline(x.replace(/^\s*\d+[.)]\s+/,""))}</li>`).join("")+"</ol>";
+    if(/^#{1,6}\s/.test(l[0])) return `<h4>${inline(l[0].replace(/^#{1,6}\s/,""))}</h4>`;
+    if(/^&gt;\s?/.test(l[0])) return `<blockquote>${inline(b.replace(/^&gt;\s?/gm,""))}</blockquote>`;
+    return `<p>${inline(b).replace(/\n/g,"<br>")}</p>`;
+  });
+  return blocks.join("");
+}
+function inline(t){
+  return t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+          .replace(/`([^`]+)`/g,"<code>$1</code>")
+          .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+          .replace(/(^|\W)\*([^*\n]+)\*/g,"$1<em>$2</em>");
+}
+
+function estatActual(){
+  const visible=rows();
+  const total=visible.reduce((sum,position)=>sum+(position.valueTotal||0),0);
+  const filters=[];
+  const category=document.getElementById("cat").value;
+  const type=document.getElementById("typ").value;
+  const query=document.getElementById("q").value.trim();
+  if(category) filters.push(`Categoria: ${category}`);
+  if(type) filters.push(`Tipus: ${type}`);
+  if(query) filters.push(`Cerca: ${query}`);
+  if(!filters.length) filters.push("Tota la cartera");
+  return {
+    horitzo:HZ[hz],
+    filtres:filters,
+    pesos:Object.fromEntries(visible.map(position=>[
+      position.ticker,
+      total ? Number(((position.valueTotal||0)/total*100).toFixed(2)) : 0
+    ]))
+  };
+}
+
+function obreAnalisiAlXat(text){
+  document.body.classList.add("chat-open");
+  inp.value=text;
+  inp.style.height="auto";
+  inp.style.height=Math.min(inp.scrollHeight,150)+"px";
+  if(streaming){
+    inp.focus();
+    return;
+  }
+  enviar();
+}
+
+inp.addEventListener("input",()=>{inp.style.height="auto";inp.style.height=Math.min(inp.scrollHeight,150)+"px";});
+inp.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();enviar();}
+});
+sendBtn.onclick=enviar;
+
+async function enviar(){
+  const text=inp.value.trim();
+  if(!text||streaming) return;
+  inp.value=""; inp.style.height="auto";
+  addUser(text);
+  hist.push({role:"user",content:text});
+  document.getElementById("chips").innerHTML="";
+
+  streaming=true; sendBtn.disabled=true;
+  const body=addBot("");
+  body.innerHTML='<span class="dots"><span></span><span></span><span></span></span>';
+
+  let acc="";
+  try{
+    const r=await fetch("/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({messages:hist,estat:estatActual()})
+    });
+
+    if(!r.ok||!r.headers.get("content-type")?.includes("text/event-stream")){
+      const j=await r.json().catch(()=>({error:"Resposta inesperada del servidor."}));
+      body.parentElement.remove();
+      addErr(j.error||"Error desconegut.");
+      streaming=false; sendBtn.disabled=false; return;
+    }
+
+    const reader=r.body.getReader(), dec=new TextDecoder();
+    let buf="";
+    for(;;){
+      const {done,value}=await reader.read();
+      if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      const parts=buf.split("\n");
+      buf=parts.pop();
+      for(const line of parts){
+        const t=line.trim();
+        if(!t.startsWith("data:")) continue;
+        const payload=t.slice(5).trim();
+        if(payload==="[DONE]") continue;
+        try{
+          const j=JSON.parse(payload);
+          const delta=j.choices?.[0]?.delta?.content;
+          if(delta){acc+=delta;body.innerHTML=md(acc);scroll();}
+        }catch(_){}
+      }
+    }
+    if(!acc){body.innerHTML='<p class="muted">(resposta buida)</p>';}
+    else hist.push({role:"assistant",content:acc});
+  }catch(e){
+    body.parentElement.remove();
+    addErr("No s'ha pogut connectar amb el servidor: "+e.message);
+  }
+  streaming=false; sendBtn.disabled=false; inp.focus();
+  carregaDades();
+}
+
+</script>
+</body>
+</html>

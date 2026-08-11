@@ -1,0 +1,609 @@
+{
+  "IUES": {
+    "name": "iShares S&P 500 EUR Hedged (Acc)",
+    "isin": "IE00B3ZW0K18",
+    "type": "ETF",
+    "cat": "EUA large cap",
+    "cur": "€",
+    "price": 153.08,
+    "date": "2026-07-26",
+    "lo": 129.38,
+    "hi": 156.73,
+    "y1": 19.05,
+    "ter": 0.2,
+    "aum": "8,7 B",
+    "bucket": "llarg",
+    "s": [
+      [
+        -10,
+        4,
+        12
+      ],
+      [
+        -18,
+        14,
+        28
+      ],
+      [
+        -5,
+        48,
+        85
+      ]
+    ],
+    "ex": {
+      "semis": 12,
+      "techus": 26,
+      "euaaltres": 47,
+      "salut": 10,
+      "energia": 3,
+      "infra": 2
+    },
+    "note": "S&P 500 amb la divisa coberta a euros. El consens d'analistes apunta a 7.500–8.000 fi d'any per a l'S&P 500 (+1-8% des del nivell actual ~7.400). Cost de cobertura EUR/USD ~1,5-2%/any en context de dòlar feble penalitza lleugerament. <b>Compte:</b> preu actual €153 vs. màxim 52s €156,73 — molt poc marge fins al sostre recent. A 5 anys, l'EPS creixent del +13% (2027 Goldman) és el motor principal."
+  },
+  "CNDX": {
+    "name": "iShares Nasdaq 100",
+    "isin": "IE00B53SZB19",
+    "type": "ETF",
+    "cat": "EUA tecnologia",
+    "cur": "€",
+    "price": 1431.4,
+    "date": "2026-07-26",
+    "lo": 1227.8,
+    "hi": 1765.4,
+    "y1": 34.67,
+    "ter": 0.33,
+    "aum": "20,8 B",
+    "bucket": "llarg",
+    "s": [
+      [
+        -14,
+        5,
+        14
+      ],
+      [
+        -22,
+        18,
+        38
+      ],
+      [
+        -8,
+        70,
+        130
+      ]
+    ],
+    "ex": {
+      "semis": 26,
+      "techus": 48,
+      "euaaltres": 20,
+      "salut": 6
+    },
+    "note": "PER 29,5 — exigent peròn justament basat en creixement EPS +24% (Goldman 2026). Supercicle d'IA via NVIDIA, Apple, Microsoft i Meta. Preu actual €1.431 vs. màxim 52s €1.765: recorregut real del +23%. <b>Risc</b>: correccions brusques -20% en 6-8 setmanes són habituals al Nasdaq. Duplicació total amb VG GLOBAL (~70% de l'MSCI World és S&P 500 / Nasdaq)."
+  },
+  "XAID": {
+    "name": "Xtrackers AI & Big Data",
+    "isin": "IE00BGV5VN51",
+    "type": "ETF",
+    "cat": "Temàtic tecnologia",
+    "cur": "€",
+    "price": 194.13,
+    "date": "2026-07-26",
+    "lo": 158.76,
+    "hi": 257.55,
+    "y1": 38.34,
+    "ter": 0.35,
+    "aum": "6,5 B",
+    "bucket": "llarg",
+    "s": [
+      [
+        -22,
+        8,
+        25
+      ],
+      [
+        -30,
+        22,
+        55
+      ],
+      [
+        -15,
+        75,
+        160
+      ]
+    ],
+    "ex": {
+      "semis": 45,
+      "techus": 28,
+      "euaaltres": 10,
+      "emergents": 12,
+      "europa": 5
+    },
+    "note": "Concentrat en memòria (Micron, Samsung, SK Hynix ~28%) — el cicle DRAM/HBM és cíclic però la demanda d'IA és estructural. Capex de hyperscalers (Microsoft, Google, Meta) creix +40% YoY: absorbeix capacitat i empeny preus de memòria. Preu actual €194 vs. màxim €257: recorregut del +32% fins al màxim anual. <b>Risc curt termini</b>: correccions del cicle de memòria ràpides i profundes (-22% baixista a 6 mesos)."
+  },
+  "XMME": {
+    "name": "Xtrackers MSCI Emerging Markets",
+    "isin": "IE00BTJRMP35",
+    "type": "ETF",
+    "cat": "Emergents",
+    "cur": "€",
+    "price": 78.22,
+    "date": "2026-07-26",
+    "lo": 56.48,
+    "hi": 87.02,
+    "y1": 38.3,
+    "ter": 0.18,
+    "aum": "12,0 B",
+    "bucket": "llarg",
+    "s": [
+      [
+        -10,
+        7,
+        18
+      ],
+      [
+        -18,
+        20,
+        42
+      ],
+      [
+        -5,
+        58,
+        100
+      ]
+    ],
+    "ex": {
+      "semis": 25,
+      "emergents": 75
+    },
+    "note": "EM 2026 en 'règim canvi' — supera mercats desenvolupats per primer cop en anys. Dòlar feble (EUR/USD ~1,13-1,15) afavoreix els emergents. China: rebot tàctic + 'anti-involution' policies. India: motor estructural de la dècada. Preu €78,22 vs. màxim €87,02: recorregut del +11%. <b>Clau fiscal</b>: SEGUEIX EL MATEIX ÍNDEX QUE VG EM però és ETF — venda tributa; traspàs no possible. Si es vol reduir EM, vendre primer XMME."
+  },
+  "CSEMUS": {
+    "name": "iShares MSCI EMU Small Cap",
+    "isin": "IE00B3VWMM18",
+    "type": "ETF",
+    "cat": "Europa",
+    "cur": "€",
+    "price": 365.1,
+    "date": "2026-07-26",
+    "lo": 310.9,
+    "hi": 378.5,
+    "y1": 11.69,
+    "ter": 0.58,
+    "aum": "811 M",
+    "bucket": "llarg",
+    "s": [
+      [
+        -12,
+        3,
+        10
+      ],
+      [
+        -18,
+        12,
+        28
+      ],
+      [
+        3,
+        40,
+        75
+      ]
+    ],
+    "ex": {
+      "europa": 100
+    },
+    "note": "PER 13,9 — valoració atractiva però el BCE va pujar 25 pb el juny i fa pausa hawkish el juliol. Small caps europees molt sensibles a tipus d'interès. <b>Risc principal</b>: si el BCE manté o torna a pujar per pressions energètiques, les small caps patiran. Preu €365 vs. màxim €378: prop del sostre. A 5 anys: un cop el cicle de tipus giri (previst 2027?), les small caps europees a PER 13,9 ofereixen recorregut real."
+  },
+  "EUDI": {
+    "name": "SPDR S&P Euro Dividend Aristocrats",
+    "isin": "IE00B5M1WJ87",
+    "type": "ETF",
+    "cat": "Europa",
+    "cur": "€",
+    "price": 30.27,
+    "date": "2026-07-26",
+    "lo": 26.07,
+    "hi": 29.92,
+    "y1": 12.38,
+    "ter": 0.3,
+    "aum": "1,4 B",
+    "bucket": "llarg",
+    "s": [
+      [
+        -7,
+        4,
+        11
+      ],
+      [
+        -12,
+        16,
+        28
+      ],
+      [
+        5,
+        45,
+        78
+      ]
+    ],
+    "ex": {
+      "europa": 100
+    },
+    "note": "Preu actual €30,27 <b>per sobre del màxim de 52s indicat (€29,92)</b> — senyal alcista, momentum positiu. PER 12,3 i dividend 3,5% semestral: retorn total positiu fins i tot en escenaris plans. Aristòcrates del dividend: asseguradores, utilities, industrials europees. A 5 anys, el retorn total incloent dividends reinvertits s'acosta al +80% en escenari alcista. <b>Risc</b>: BCE hawkish prolongat i deteriorament del cicle econòmic europeu."
+  },
+  "DEFS": {
+    "name": "Amundi Stoxx Europe Defense",
+    "isin": "LU3038520774",
+    "type": "ETF",
+    "cat": "Temàtic Europa",
+    "cur": "€",
+    "price": 5.9,
+    "date": "2026-07-26",
+    "lo": 5.12,
+    "hi": 6.72,
+    "y1": 3.56,
+    "ter": 0.35,
+    "aum": "575 M",
+    "bucket": "llarg",
+    "s": [
+      [
+        -15,
+        5,
+        20
+      ],
+      [
+        -18,
+        18,
+        45
+      ],
+      [
+        -5,
+        65,
+        130
+      ]
+    ],
+    "ex": {
+      "defensa": 100
+    },
+    "note": "2026 l'any de la veritat en defensa — comandes rècord de l'OTAN. <b>Risc</b>: dependència de pressupostos públics estatals europeus i execució industrial lenta. Preu €5,90 vs. màxim €6,72: +14% fins al sostre."
+  },
+  "BRIJ": {
+    "name": "Global X European Infrastructure Dev.",
+    "isin": "IE000QM8Q4G6",
+    "type": "ETF",
+    "cat": "Infraestructures",
+    "cur": "$",
+    "price": 22.63,
+    "priceEur": 19.89,
+    "date": "2026-07-26",
+    "lo": 20.49,
+    "hi": 25.8,
+    "y1": 5.27,
+    "ter": 0.47,
+    "aum": "480 M",
+    "bucket": "llarg",
+    "s": [
+      [
+        -10,
+        5,
+        14
+      ],
+      [
+        -14,
+        18,
+        35
+      ],
+      [
+        -2,
+        55,
+        100
+      ]
+    ],
+    "ex": {
+      "infra": 55,
+      "defensa": 25,
+      "europa": 20
+    },
+    "note": "Fons jove (set. 2024): poc historial. Holcim, Ferrovial, Vinci, Aena + 25% de defensa (Thales, Leonardo). Beneficia de NextGenEU, despesa d'infraestructures i doble dividend geopolític (civil+militar). Preu actual $22,63 vs. màxim $25,80: recorregut del +14%. <b>Risc</b>: constructores europees lligades al cicle econòmic; solapament amb DEFS (defensa) i CSEMUS (Europa)."
+  },
+  "INFR": {
+    "name": "iShares Global Infrastructure (Dist)",
+    "isin": "IE00B1FZS467",
+    "type": "ETF",
+    "cat": "Infraestructures",
+    "cur": "€",
+    "price": 35.59,
+    "date": "2026-07-26",
+    "lo": 29.16,
+    "hi": 34.45,
+    "y1": 15.02,
+    "ter": 0.65,
+    "aum": "2,1 B",
+    "bucket": "llarg",
+    "s": [
+      [
+        -8,
+        4,
+        10
+      ],
+      [
+        -12,
+        14,
+        25
+      ],
+      [
+        2,
+        46,
+        75
+      ]
+    ],
+    "ex": {
+      "infra": 100
+    },
+    "note": "Beta 0,35 i dividend 2% trimestral: l'actiu <b>més defensiu del quadre</b>. Preu actual €35,59 per sobre del màxim de 52s (€34,45) — momentum positiu recent. Molt sensible a tipus: BCE hawkish és un fre; retall de tipus (2027?) seria un catalitzador fort. TER 0,65%, el més car dels ETFs. Posició petita (€2.090): impacte mínim en cartera."
+  },
+  "XDW0": {
+    "name": "Xtrackers MSCI World Energy",
+    "isin": "IE00BM67HL84",
+    "type": "ETF",
+    "cat": "Energia",
+    "cur": "$",
+    "price": 73.11,
+    "priceEur": 64.26,
+    "date": "2026-07-26",
+    "lo": 42.51,
+    "hi": 66.92,
+    "y1": 27.62,
+    "ter": 0.25,
+    "aum": "1,6 B",
+    "bucket": "llarg",
+    "s": [
+      [
+        -18,
+        5,
+        22
+      ],
+      [
+        -22,
+        12,
+        38
+      ],
+      [
+        -18,
+        40,
+        95
+      ]
+    ],
+    "ex": {
+      "energia": 100
+    },
+    "note": "Exxon + Chevron ~28%. Brent ~70-80$/bbl: dèficit d'oferta el 2026 (tensió Hormuz), però Goldman Sachs preveu Brent ~$75 el 2027 amb transició cap a superàvit. <b>Valor real</b>: correlació baixa amb la resta de cartera (la cobertura millor del quadre). Preu actual $73,11 vs. màxim $66,92 — ja per SOBRE del màxim anual: cuidado, pot estar sobrecomprat. <b>Risc terminal</b>: acceleració de la transició energètica a 5 anys, però els actius existents es pagaran bé els pròxims 8-10 anys."
+  },
+  "BLKC": {
+    "name": "iShares Blockchain Technology",
+    "isin": "IE000RDRMSD1",
+    "type": "ETF",
+    "cat": "Temàtic cripto",
+    "cur": "€",
+    "price": 15.02,
+    "date": "2026-07-26",
+    "lo": 9.45,
+    "hi": 18.52,
+    "y1": 10.29,
+    "ter": 0.5,
+    "aum": "213 M",
+    "bucket": "llarg",
+    "s": [
+      [
+        -35,
+        15,
+        55
+      ],
+      [
+        -45,
+        40,
+        120
+      ],
+      [
+        -50,
+        100,
+        280
+      ]
+    ],
+    "ex": {
+      "cripto": 70,
+      "semis": 15,
+      "euaaltres": 15
+    },
+    "note": "Bitcoin en consolidació post-màxims 2025 (~$65-90k de rang actual). El mercat institucional (ETFs spot BTC, custody bancari) estabilitza però no elimina la ciclicitat. Coinbase, miners i Circle ~45%. <b>Caigudes del 35-50% en 6-9 mesos són normals</b> — no l'excepció. Preu €15,02 en posició intermèdia del rang 52s (€9,45-18,52). A 5 anys: si Bitcoin consolida >$100k i la tokenització d'actius reals s'accelera, +100-280% és factible. Posició ben dimensionada (<1% cartera)."
+  },
+  "VG GLOBAL": {
+    "name": "Vanguard Global Stock Index Inv EUR Acc",
+    "isin": "IE00B03HCZ61",
+    "type": "Fons",
+    "cat": "Global",
+    "cur": "€",
+    "price": 61.8,
+    "date": "2026-07-26",
+    "lo": null,
+    "hi": null,
+    "y1": 11.44,
+    "ter": 0.18,
+    "aum": "20,1 B",
+    "bucket": "llarg",
+    "s": [
+      [
+        -12,
+        5,
+        12
+      ],
+      [
+        -18,
+        16,
+        32
+      ],
+      [
+        2,
+        52,
+        90
+      ]
+    ],
+    "ex": {
+      "semis": 10,
+      "techus": 22,
+      "euaaltres": 36,
+      "europa": 18,
+      "salut": 9,
+      "energia": 3,
+      "infra": 2
+    },
+    "note": "<b>El nucli real: 53% de la cartera.</b> MSCI World (~1.500 empreses, 23 mercats). EPS global ha crescut ~10% anualitzat els últims 10 anys — projecció similar mantenint el cicle d'IA. A 6 mesos: consens S&P 500 a 7.500-8.000 (+1-8%) marca el sostre raonable. <b>Cada ETF satèl·lit de la cartera és una segona compra parcial d'aquest fons</b> — CNDX, IUES, XDW0, INFR, EUDI ja hi sòren a dins. TER 0,18%: el fons més barat de la cartera (juntament amb XMME). No es toca."
+  },
+  "VG EM": {
+    "name": "Vanguard Emerging Markets Stock Index Inv EUR Acc",
+    "isin": "IE0031786142",
+    "type": "Fons",
+    "cat": "Emergents",
+    "cur": "€",
+    "price": 302.03,
+    "date": "2026-07-26",
+    "lo": null,
+    "hi": null,
+    "y1": 11.08,
+    "ter": 0.23,
+    "aum": "—",
+    "bucket": "llarg",
+    "s": [
+      [
+        -10,
+        7,
+        18
+      ],
+      [
+        -18,
+        20,
+        42
+      ],
+      [
+        -5,
+        58,
+        100
+      ]
+    ],
+    "ex": {
+      "semis": 25,
+      "emergents": 75
+    },
+    "note": "MSCI Emerging Markets — <b>índex idèntic al de XMME</b>. Mateixos escenaris. La diferència CLAU: <b>es pot traspassar sense tributar</b> (art. 94 LIRPF); XMME no. Si es vol reduir exposició EM, vendre primer XMME (cristal·litzar guany/pèrdua) i conservar o reforçar VG EM. EM 2026 en 'règim canvi' vs. mercats desenvolupats: dòlar feble + China + India com a motors. Guany actual: +967 € sobre cost (+0,8%) — gairebé en breakeven."
+  },
+  "VG SMALL": {
+    "name": "Vanguard Global Small-Cap Index Acc",
+    "isin": "IE00B42LF923",
+    "type": "Fons",
+    "cat": "Global small cap",
+    "cur": "€",
+    "price": 506.44,
+    "date": "2026-07-26",
+    "lo": null,
+    "hi": null,
+    "y1": 13.72,
+    "ter": 0.29,
+    "aum": "—",
+    "bucket": "llarg",
+    "s": [
+      [
+        -14,
+        5,
+        14
+      ],
+      [
+        -20,
+        16,
+        35
+      ],
+      [
+        -2,
+        55,
+        98
+      ]
+    ],
+    "ex": {
+      "euaaltres": 55,
+      "europa": 25,
+      "salut": 8,
+      "infra": 6,
+      "energia": 6
+    },
+    "note": "MSCI World Small Cap (~4.000 empreses). Més sensible al cicle econòmic que large caps. BCE hawkish és un vent en contra a curt termini per al tros europeu (~25%). <b>A 5 anys</b>: small caps historicament superen large caps en cicles econòmics expansius (+2-3% anuals addicionals). Guany actual: +153 € sobre cost (+0,2%) — gairebé en breakeven. Complementa bé VG GLOBAL però solapa amb CSEMUS (el tros europeu)."
+  },
+  "POLAR HC": {
+    "name": "Polar Capital Healthcare Opportunities I EUR",
+    "isin": "IE00B3K83P04",
+    "type": "Fons",
+    "cat": "Salut",
+    "cur": "€",
+    "price": 84.03,
+    "date": "2026-07-26",
+    "lo": null,
+    "hi": null,
+    "y1": 14.81,
+    "ter": 1.11,
+    "aum": "1,9 B",
+    "bucket": "llarg",
+    "s": [
+      [
+        -10,
+        5,
+        14
+      ],
+      [
+        -14,
+        18,
+        34
+      ],
+      [
+        5,
+        58,
+        105
+      ]
+    ],
+    "ex": {
+      "salut": 100
+    },
+    "note": "<b>L'única exposició pura a salut de la cartera</b> (VG GLOBAL en té ~9% però no és prioritat). Catalitzadors: envelliment poblacional global, oncologia, GLP-1 (Ozempic, Mounjaro) i IA en diagnòstic. TER 1,11% és el més alt — es justifica si el gestor actiu supera el benchmark. <b>Risc</b>: regulació de preus als EUA (risc polític), competència de genèrics. Guany actual: +7.576 € (+8,1%). Si el cost de gestió no es justifica amb alpha, un ETF de salut a 0,35% seria alternativa millor."
+  },
+  "CREAND RF": {
+    "name": "Creand Renta Fija Mixta, classe R",
+    "isin": "ES0174013021",
+    "type": "Fons",
+    "cat": "Renda fixa",
+    "cur": "€",
+    "price": 10.74,
+    "date": "2026-07-26",
+    "lo": null,
+    "hi": null,
+    "y1": null,
+    "ter": 0.75,
+    "aum": "—",
+    "bucket": "llarg",
+    "s": [
+      [
+        -2,
+        2,
+        5
+      ],
+      [
+        -3,
+        7,
+        12
+      ],
+      [
+        5,
+        22,
+        35
+      ]
+    ],
+    "ex": {
+      "rendafixa": 95,
+      "europa": 5
+    },
+    "note": "90-100% renda fixa BBB- mínim. BCE ha pujat 25 pb al juny i fa pausa hawkish al juliol: vent moderat en contra per a bons de llarg termini. Classe R (minorista) — comissions superiors a la classe institucional: revisar opcions. Guany actual: +608 € (+0,5%) sobre cost."
+  }
+}

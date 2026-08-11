@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "actualitzat": "2026-07-26",
+    "perfil": {
+      "horitzo": "Llarg termini, sense aportacions noves els pròxims 6 mesos",
+      "aportacions": "Cap aportació nova els pròxims 6 mesos: només es pot reorganitzar el que ja hi ha",
+      "nucli": "Els fons indexats (Vanguard + Creand) són el gruix de la cartera; els ETFs són posicions satèl·lit"
+    },
+    "fiscalitat": "Espanya. Els fons d'inversió es poden traspassar entre ells sense tributar (art. 94 LIRPF: es conserva valor i antiguitat fiscal). Els ETFs estan exclosos d'aquest règim des de l'1 de gener de 2022: cada venda genera guany o pèrdua patrimonial patrimonial imputable a l'exercici.",
+    "horitzons": ["6 mesos", "2 anys", "5 anys"]
+  },
+  "exLabels": {
+    "semis": "Semis i maquinari IA",
+    "techus": "Tech EUA (resta)",
+    "euaaltres": "EUA altres sectors",
+    "europa": "Europa",
+    "emergents": "Emergents",
+    "energia": "Energia",
+    "infra": "Infraestructures",
+    "salut": "Salut",
+    "defensa": "Defensa",
+    "cripto": "Cripto / blockchain",
+    "rendafixa": "Renda fixa"
+  },
+  "exColors": {
+    "semis": "#e5605e", "techus": "#f0913f", "euaaltres": "#6ea8fe", "europa": "#3fb984",
+    "emergents": "#c9a227", "energia": "#8c7ae6", "infra": "#4bbfd0", "salut": "#e06fa8",
+    "defensa": "#a0a8b8", "cripto": "#f0c93f", "rendafixa": "#5d6474"
+  },
+  "duplicats": [
+    { "a": "XMME", "b": "VG EM", "t": "Segueixen el <b>mateix índex</b> (MSCI Emerging Markets). Duplicació total. Acció recomanada: vendre XMME (ETF) i mantenir VG EM (traspàs lliure)." },
+    { "a": "VG GLOBAL", "b": "CNDX", "t": "El Nasdaq 100 ja és íntegrament dins del MSCI World. Compres les mateixes accions dues vegades." },
+    { "a": "VG GLOBAL", "b": "IUES", "t": "L'S&P 500 ja és dins del MSCI World (~70% de l'índex). Amb IUES només hi afegeixes la cobertura de divisa." },
+    { "a": "CNDX", "b": "IUES", "t": "Solapament altíssim: les 7 primeres posicions són pràciemnt idèntiques." },
+    { "a": "CNDX", "b": "XAID", "t": "Els mateixos semis al capdavant (NVIDIA, Micron, AMD). La concentració agregada és molt superior a la de cada línia." },
+    { "a": "VG SMALL", "b": "CSEMUS", "t": "CSEMUS (small cap zona euro) és un subconjunt del MSCI World Small Cap." },
+    { "a": "VG GLOBAL", "b": "XDW0", "t": "El sector energia ja és dins del MSCI World; XDW0 el sobreponera. Valor real: correlació baixa (cobertura)." },
+    { "a": "VG GLOBAL", "b": "INFR", "t": "Utilities i infraestructures ja són a l'índex global; INFR les sobreponera." },
+    { "a": "VG GLOBAL", "b": "EUDI", "t": "Large caps europees ja presents al MSCI World (~18% de l'índex)." },
+    { "a": "DEFS", "b": "BRIJ", "t": "Thales i Leonardo apareixen als dos fons; BRIJ té un 25% de defensa." },
+    { "a": "XMME", "b": "XAID", "t": "Samsung i SK Hynix pesen als dos. Exposició coreana a memòria duplicada." },
+    { "a": "VG EM", "b": "XAID", "t": "Samsung i SK Hynix, altre cop. Tres línies comprant els mateixos fabricants de memòria coreana." }
+  ]
+}

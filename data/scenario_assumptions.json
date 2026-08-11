@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "asOf": "2026-06-30",
+  "quantiles": {
+    "lower": 0.1,
+    "central": 0.5,
+    "upper": 0.9,
+    "zLower": -1.2815515655,
+    "zUpper": 1.2815515655
+  },
+  "horizons": [
+    {
+      "label": "6 mesos",
+      "years": 0.5,
+      "useLongTermReturn": true,
+      "description": "Distribució orientativa a sis mesos: el punt central és la part proporcional del retorn estructural anual, capitalitzada a mig any. A aquest horitzó la volatilitat domina àmpliament el retorn esperat, així que el punt central té molt poc valor predictiu i la banda P10–P90 és la lectura rellevant."
+    },
+    {
+      "label": "2 anys",
+      "years": 2,
+      "useLongTermReturn": true,
+      "description": "Distribució orientativa basada en retorn estructural net i volatilitat anual. Horitzó encara massa curt per considerar-la una previsió robusta."
+    },
+    {
+      "label": "5 anys",
+      "years": 5,
+      "useLongTermReturn": true,
+      "description": "Distribució orientativa basada en retorn estructural net i volatilitat anual. No incorpora canvis futurs de valoració ni de composició."
+    }
+  ],
+  "sources": [
+    {
+      "id": "vanguard-vcmm-2026q2",
+      "title": "Vanguard Capital Markets Model — forecasts as of June 30, 2026",
+      "url": "https://corporate.vanguard.com/content/corporatesite/us/en/corp/vemo/vemo-return-forecasts.html",
+      "use": "Punts centrals bruts de renda variable: EUA 5,2%, desenvolupats ex-EUA 5,5% i emergents 3,0%, calculats com el punt mig dels rangs publicats."
+    },
+    {
+      "id": "ecb-2026-07-23",
+      "title": "ECB monetary policy decisions — July 23, 2026",
+      "url": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260723~29f24d99bc.en.html",
+      "use": "Àncora del 2,25% per al tipus de dipòsit. La renda fixa incorpora una prima analítica conservadora perquè no disposem de durada, yield-to-maturity ni composició completa del fons."
+    }
+  ],
+  "correlations": {
+    "sameGroup": 0.85,
+    "equityCrossGroup": 0.65,
+    "equityFixedIncome": 0.1,
+    "fixedIncomeSameGroup": 0.6,
+    "blockchainEquity": 0.45
+  },
+  "assets": {
+    "IUES": {
+      "group": "us_equity",
+      "grossReturn": 5.2,
+      "volatility": 17,
+      "basis": "VCMM EUA; volatilitat analítica de mercat ampli. Cobertura EUR/USD no modelada.",
+      "confidence": "mitjana",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "CNDX": {
+      "group": "us_growth",
+      "grossReturn": 5.2,
+      "volatility": 24,
+      "basis": "VCMM EUA sense prima d'alpha per tecnologia; volatilitat superior per concentració growth.",
+      "confidence": "mitjana",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "XAID": {
+      "group": "us_growth",
+      "grossReturn": 5.2,
+      "volatility": 30,
+      "basis": "Proxy VCMM EUA sense prima d'alpha per IA; volatilitat analítica elevada per concentració temàtica.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "XMME": {
+      "group": "em_equity",
+      "grossReturn": 3,
+      "volatility": 22,
+      "basis": "VCMM emergents; risc de divisa EUR no modelat separadament.",
+      "confidence": "mitjana",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "CSEMUS": {
+      "group": "developed_ex_us",
+      "grossReturn": 5.5,
+      "volatility": 23,
+      "basis": "Proxy VCMM desenvolupats ex-EUA; volatilitat superior per small caps.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "EUDI": {
+      "group": "developed_ex_us",
+      "grossReturn": 5.5,
+      "volatility": 17,
+      "basis": "Proxy VCMM desenvolupats ex-EUA; no s'afegeix prima per dividend o estil value.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "DEFS": {
+      "group": "europe_thematic",
+      "grossReturn": 5.5,
+      "volatility": 28,
+      "basis": "Proxy VCMM desenvolupats ex-EUA sense prima d'alpha; volatilitat elevada per concentració en defensa.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "BRIJ": {
+      "group": "europe_thematic",
+      "grossReturn": 5.5,
+      "volatility": 23,
+      "basis": "Proxy VCMM desenvolupats ex-EUA sense prima d'alpha; historial propi insuficient.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "INFR": {
+      "group": "global_defensive",
+      "grossReturn": 5.3,
+      "volatility": 16,
+      "basis": "Combinació aproximada EUA/desenvolupats ex-EUA; perfil defensiu sense prima d'alpha.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "XDW0": {
+      "group": "global_cyclical",
+      "grossReturn": 5.3,
+      "volatility": 28,
+      "basis": "Proxy de renda variable global sense previsió del petroli; volatilitat elevada per cicle energètic.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "BLKC": {
+      "group": "blockchain_equity",
+      "grossReturn": 5.2,
+      "volatility": 55,
+      "basis": "Proxy EUA sense prima especulativa; volatilitat extrema per sensibilitat a criptoactius i empreses petites.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "VG GLOBAL": {
+      "group": "global_equity",
+      "grossReturn": 5.3,
+      "volatility": 16,
+      "basis": "Combinació aproximada del 70% EUA i 30% desenvolupats ex-EUA; divisa EUR no modelada separadament.",
+      "confidence": "mitjana",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "VG EM": {
+      "group": "em_equity",
+      "grossReturn": 3,
+      "volatility": 22,
+      "basis": "VCMM emergents; risc de divisa EUR no modelat separadament.",
+      "confidence": "mitjana",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "VG SMALL": {
+      "group": "global_small",
+      "grossReturn": 5.3,
+      "volatility": 22,
+      "basis": "Proxy de renda variable global sense prima estructural per small caps.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "POLAR HC": {
+      "group": "global_defensive",
+      "grossReturn": 5.3,
+      "volatility": 19,
+      "basis": "Proxy de renda variable global; no s'assumeix alpha futur del gestor actiu.",
+      "confidence": "baixa",
+      "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "CREAND RF": {
+      "group": "fixed_income_eur",
+      "grossReturn": 3,
+      "volatility": 6,
+      "basis": "Hipòtesi analítica: tipus de dipòsit BCE del 2,25% més prima moderada de durada/crèdit. Falta yield-to-maturity i durada efectiva.",
+      "confidence": "baixa",
+      "sourceIds": ["ecb-2026-07-23"]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+# Secrets — mai al control de versions
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Dades privades reals (imports, saldos, identificadors)
+data/portfolio.local.json
+data/privat/
+
+node_modules/
+npm-debug.log*
+.DS_Store
+.vercel
+.env*

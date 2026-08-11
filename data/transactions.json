@@ -1,0 +1,114 @@
+[
+  {
+    "date": "2026-07-26",
+    "ticker": "IUES",
+    "operation": "buy",
+    "shares": 63.50,
+    "price": 141.75
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "CNDX",
+    "operation": "buy",
+    "shares": 2.72,
+    "price": 1473.20
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "XAID",
+    "operation": "buy",
+    "shares": 48.91,
+    "price": 204.46
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "XMME",
+    "operation": "buy",
+    "shares": 345.34,
+    "price": 66.60
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "CSEMUS",
+    "operation": "buy",
+    "shares": 47.16,
+    "price": 330.57
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "EUDI",
+    "operation": "buy",
+    "shares": 640.39,
+    "price": 28.11
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "DEFS",
+    "operation": "buy",
+    "shares": 3023.39,
+    "price": 5.79
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "BRIJ",
+    "operation": "buy",
+    "shares": 244.47,
+    "price": 20.45
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "INFR",
+    "operation": "buy",
+    "shares": 58.73,
+    "price": 34.06
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "XDW0",
+    "operation": "buy",
+    "shares": 550.26,
+    "price": 52.70
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "BLKC",
+    "operation": "buy",
+    "shares": 522.16,
+    "price": 15.32
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "VG GLOBAL",
+    "operation": "buy",
+    "shares": 10594.18,
+    "price": 58.80
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "VG EM",
+    "operation": "buy",
+    "shares": 411.65,
+    "price": 299.85
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "VG SMALL",
+    "operation": "buy",
+    "shares": 136.02,
+    "price": 499.80
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "POLAR HC",
+    "operation": "buy",
+    "shares": 1200.62,
+    "price": 77.72
+  },
+  {
+    "date": "2026-07-26",
+    "ticker": "CREAND RF",
+    "operation": "buy",
+    "shares": 12169.69,
+    "price": 10.69
+  }
+]
