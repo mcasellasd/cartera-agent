@@ -9,8 +9,7 @@ const TABS = {
   ldm: { name: 'RESUM BROKER LDM', range: 'A1:M25' },
   xcb: { name: 'RESUM BROKER XCB', range: 'A1:M12' },
   fons: { name: 'RESUM FONS ANDORRA', range: 'A1:M10' },
-  cash: { name: 'TR.REPLUBIC:LDM', range: 'H133' },
-  transactions: { name: 'TR.REPLUBIC:LDM', range: 'A1:M180' }
+  cash: { name: 'TR.REPLUBIC:LDM', range: 'H133' }
 };
 
 const USD_ETFS = new Set(['BLKC', 'XAID', 'XMME', 'BRIJ', 'XDW0']);
@@ -62,44 +61,6 @@ function value(row, index) {
 function finite(valueToCheck) {
   const parsed = Number(valueToCheck);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function money(valueToCheck) {
-  if (typeof valueToCheck === 'number') return finite(valueToCheck);
-  const normalized = String(valueToCheck || '').replace(/[€\s]/g, '').replace(/\./g, '').replace(',', '.');
-  return finite(normalized);
-}
-
-function parseSheetDate(valueToCheck) {
-  const match = String(valueToCheck || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
-  if (!match) return null;
-  const year = Number(match[3].length === 2 ? '20' + match[3] : match[3]);
-  const date = new Date(year, Number(match[2]) - 1, Number(match[1]));
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function calculaInversioMtd(rows, now = new Date()) {
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  let total = 0;
-  let count = 0;
-  for (const row of rows) {
-    const date = parseSheetDate(row?.c?.[1]?.f || value(row, 1));
-    const operation = String(value(row, 2) || '').toLowerCase();
-    const amount = money(value(row, 5));
-    if (date && date >= start && date <= end && /compra/.test(operation) && amount !== null) {
-      total += amount;
-      count++;
-    }
-  }
-  const iso = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
-  return {
-    value: Math.round(total * 100) / 100,
-    count,
-    start: iso(start),
-    end: iso(now),
-    period: 'MTD'
-  };
 }
 
 function normalizeName(name) {
@@ -209,12 +170,11 @@ async function loadSheetPortfolio({ force = false } = {}) {
   const now = Date.now();
   if (!force && memoryCache && now - memoryCacheAt < CACHE_MS) return memoryCache;
 
-  const [ldmRows, xcbRows, fundRows, cashRows, transactionRows, initialInvestment] = await Promise.all([
+  const [ldmRows, xcbRows, fundRows, cashRows, initialInvestment] = await Promise.all([
     fetchTab(TABS.ldm),
     fetchTab(TABS.xcb),
     fetchTab(TABS.fons),
     fetchTab(TABS.cash),
-    fetchTab(TABS.transactions),
     fetchHistoricalInitialInvestment()
   ]);
 
@@ -239,7 +199,6 @@ async function loadSheetPortfolio({ force = false } = {}) {
   memoryCache = {
     positions,
     cashValue: Math.round(cashValue * 100) / 100,
-    mtdInvestment: calculaInversioMtd(transactionRows),
     syncedAt: new Date().toISOString(),
     source: 'Google Sheets'
   };

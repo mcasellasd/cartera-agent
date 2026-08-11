@@ -443,17 +443,17 @@ body.chat-open #chat{transform:none}
 <div class="stats-section">
   <div class="stats-title">Rendiment actual</div>
   <div class="kpis">
-    <div class="kpi"><div class="lab">Posicions</div><div class="val" id="k1">—</div></div>
+    <div class="kpi"><div class="lab">Posicions</div><div class="val" id="k1">—</div><div class="pct" id="k1_period">—</div></div>
     <div class="kpi"><div class="lab">Capital inicial · 31/12/21</div><div class="val" id="k_initial">—</div></div>
-    <div class="kpi"><div class="lab">Total invertit · MTD</div><div class="val" id="k_cost">—</div><div class="pct" id="k_cost_period">—</div></div>
-    <div class="kpi"><div class="lab">Valor invertit actual</div><div class="val" id="k_val">—</div></div>
-    <div class="kpi"><div class="lab">Efectiu disponible</div><div class="val" id="k_cash">—</div></div>
-    <div class="kpi"><div class="lab">Patrimoni total</div><div class="val" id="k_total">—</div></div>
-    <div class="kpi"><div class="lab">Guany / Pèrdua (€)</div><div class="val" id="k_pnl">—</div></div>
-    <div class="kpi"><div class="lab">Guany / Pèrdua (%)</div><div class="val" id="k_pnlp">—</div></div>
+    <div class="kpi"><div class="lab">Capital invertit total</div><div class="val" id="k_cost">—</div><div class="pct" id="k_cost_period">—</div></div>
+    <div class="kpi"><div class="lab">Valor invertit actual</div><div class="val" id="k_val">—</div><div class="pct" id="k_val_period">—</div></div>
+    <div class="kpi"><div class="lab">Efectiu disponible</div><div class="val" id="k_cash">—</div><div class="pct" id="k_cash_period">—</div></div>
+    <div class="kpi"><div class="lab">Patrimoni total</div><div class="val" id="k_total">—</div><div class="pct" id="k_total_period">—</div></div>
+    <div class="kpi"><div class="lab">Guany / Pèrdua (€)</div><div class="val" id="k_pnl">—</div><div class="pct" id="k_pnl_period">—</div></div>
+    <div class="kpi"><div class="lab">Guany / Pèrdua (%)</div><div class="val" id="k_pnlp">—</div><div class="pct" id="k_pnlp_period">—</div></div>
     <div class="kpi" id="k_day_card"><div class="lab">ETF · avui</div><div class="val" id="k_day">—</div><div class="pct" id="k_dayp">—</div></div>
     <div class="kpi" id="k_week_card"><div class="lab">Fons · setmana</div><div class="val" id="k_week">—</div><div class="pct" id="k_weekp">—</div></div>
-    <div class="kpi"><div class="lab">TER ponderat</div><div class="val" id="k5">—</div></div>
+    <div class="kpi"><div class="lab">TER ponderat</div><div class="val" id="k5">—</div><div class="pct">Actual</div></div>
   </div>
 </div>
 
@@ -687,6 +687,11 @@ function formatData(iso) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return iso || 'sense data';
   return new Intl.DateTimeFormat('ca-ES', {day:'numeric', month:'long', year:'numeric'})
     .format(new Date(`${iso}T12:00:00`));
+}
+
+function shortDate(iso) {
+  const value=String(iso || '').slice(0,10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value.slice(8,10)}/${value.slice(5,7)}/${value.slice(2,4)}` : '—';
 }
 
 function mostraDatesPreus() {
@@ -1138,6 +1143,8 @@ function render(){
     return weight?valid.reduce((s,d)=>s+getValue(d)*d.valueTotal,0)/weight:null;
   };
   document.getElementById("k1").textContent=r.length;
+  const asOf=shortDate(P?.meta?.actualitzat);
+  document.getElementById("k1_period").textContent=`Actualitzat ${asOf}`;
   const initialInvestment=Number(P?.meta?.initialInvestment?.value);
   document.getElementById("k_initial").textContent=Number.isFinite(initialInvestment)?f(initialInvestment,0)+' €':'—';
 
@@ -1166,10 +1173,13 @@ function render(){
     pctEl.textContent=changePct!=null?`${changePct>=0?'+':''}${changePct.toFixed(2)}% · ${positions.length} pos.`:'—';
     pctEl.className='pct '+(changePct!=null?cls(changePct):'');
   };
-  const mtdInvestment=P?.meta?.mtdInvestment || {};
-  document.getElementById("k_cost").textContent = f(Number(mtdInvestment.value)||0,0)+' €';
-  const shortDate=iso=>iso ? `${iso.slice(8,10)}/${iso.slice(5,7)}/${iso.slice(2,4)}` : '—';
-  document.getElementById("k_cost_period").textContent = `${shortDate(mtdInvestment.start)}–${shortDate(mtdInvestment.end)} · ${Number(mtdInvestment.count)||0} compres`;
+  document.getElementById("k_cost").textContent = f(totalCost,0)+' €';
+  document.getElementById("k_cost_period").textContent = `Acumulat · actualitzat ${asOf}`;
+  document.getElementById("k_val_period").textContent = `A ${asOf}`;
+  document.getElementById("k_cash_period").textContent = `A ${asOf}`;
+  document.getElementById("k_total_period").textContent = `A ${asOf}`;
+  document.getElementById("k_pnl_period").textContent = 'Des de compra';
+  document.getElementById("k_pnlp_period").textContent = 'Des de compra';
   const kVal=document.getElementById("k_val"); kVal.textContent=f(investedVal,0)+' €'; kVal.className='val '+cls(totalPnl);
   document.getElementById("k_cash").textContent=f(cashValue,0)+' €';
   document.getElementById("k_total").textContent=f(totalVal,0)+' €';
