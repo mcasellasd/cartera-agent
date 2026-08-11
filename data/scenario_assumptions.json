@@ -40,6 +40,24 @@
       "title": "ECB monetary policy decisions — July 23, 2026",
       "url": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260723~29f24d99bc.en.html",
       "use": "Àncora del 2,25% per al tipus de dipòsit. La renda fixa incorpora una prima analítica conservadora perquè no disposem de durada, yield-to-maturity ni composició completa del fons."
+    },
+    {
+      "id": "finect-evli-2026-08-07",
+      "title": "Finect — Evli Short Corporate Bond B",
+      "url": "https://www.finect.com/fondos-inversion/FI0008800511-Evli_short_corporate_bond_b",
+      "use": "Identificació, categoria, risc, despeses corrents, patrimoni i política de durada/crèdit d'Evli; no aporta una previsió de rendibilitat futura."
+    },
+    {
+      "id": "finect-pictet-2026-08-07",
+      "title": "Finect — Pictet-EUR Short Term Corporate Bonds P EUR",
+      "url": "https://www.finect.com/fondos-inversion/LU0954602750-Picteteur_short_term_corp_bds_p_eur",
+      "use": "Identificació, categoria, risc, despeses corrents, patrimoni i política de durada/crèdit de Pictet; no aporta una previsió de rendibilitat futura."
+    },
+    {
+      "id": "finect-amundi-2026-08-07",
+      "title": "Finect — Amundi S.F. Diversified Short-Term Bond Select A EUR ND",
+      "url": "https://www.finect.com/fondos-inversion/LU1706854152-Amundi_sf_diversified_st_bd_a_eur_nd",
+      "use": "Identificació, categoria, risc, despeses corrents, patrimoni i política de durada/crèdit d'Amundi; no aporta una previsió de rendibilitat futura."
     }
   ],
   "correlations": {
@@ -169,6 +187,30 @@
       "basis": "Proxy de renda variable global; no s'assumeix alpha futur del gestor actiu.",
       "confidence": "baixa",
       "sourceIds": ["vanguard-vcmm-2026q2"]
+    },
+    "EVLI CORP BOND": {
+      "group": "fixed_income_eur",
+      "grossReturn": 3,
+      "volatility": 5.5,
+      "basis": "Perfil Finect de deute corporatiu curt amb exposició també a high yield i qualificació mitjana mínima B-; retorn estructural i volatilitat són estimacions analítiques, no una previsió publicada per Finect.",
+      "confidence": "baixa",
+      "sourceIds": ["finect-evli-2026-08-07", "ecb-2026-07-23"]
+    },
+    "PICTET ST CORP": {
+      "group": "fixed_income_eur",
+      "grossReturn": 2.8,
+      "volatility": 3.5,
+      "basis": "Perfil Finect de deute corporatiu curt principalment investment grade i durada mitjana màxima de 3 anys; retorn estructural i volatilitat són estimacions analítiques, no una previsió publicada per Finect.",
+      "confidence": "baixa",
+      "sourceIds": ["finect-pictet-2026-08-07", "ecb-2026-07-23"]
+    },
+    "AMUNDI ST CORP": {
+      "group": "fixed_income_eur",
+      "grossReturn": 2.7,
+      "volatility": 2.5,
+      "basis": "Perfil Finect de renda fixa curta diversificada amb durada de tipus entre -1 i +1; retorn estructural i volatilitat són estimacions analítiques, no una previsió publicada per Finect.",
+      "confidence": "baixa",
+      "sourceIds": ["finect-amundi-2026-08-07", "ecb-2026-07-23"]
     },
     "CREAND RF": {
       "group": "fixed_income_eur",
