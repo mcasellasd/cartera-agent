@@ -13,6 +13,7 @@ const {
   loadScenarioAssumptions,
   scenarioMetadata
 } = require('./scenario-model');
+const { loadMacro } = require('./macro-store');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -685,7 +686,54 @@ function netejaBanda(band) {
   return { min: Math.round(min * 10) / 10, max: Math.round(max * 10) / 10 };
 }
 
-function normalitzaConsell(raw, cartera, exposure, capital) {
+function preparaContextMacro(macro) {
+  if (!macro || !Array.isArray(macro.series)) return { available: false, error: 'Dades macro no disponibles.' };
+  const labels = {
+    credit: 'Crèdit', financial: 'Condicions financeres', curve: 'Corba de tipus',
+    earnings: 'Beneficis', activity: 'Activitat', interbank: 'Liquiditat interbancària',
+    consumerStress: 'Consumidor endeutat', liquidity: 'Liquiditat neta EUA',
+    market: 'Mercat i volatilitat', geopolitical: 'Risc geopolític'
+  };
+  const series = Object.fromEntries(macro.series.map(item => [item.key, item]));
+  const fmt = value => Number.isFinite(Number(value)) ? Math.round(Number(value) * 100) / 100 : null;
+  const blocks = Object.entries(macro.assessment?.blocks || {}).map(([key, assessment]) => ({
+    key, label: labels[key] || key, level: assessment.level, reason: assessment.reason
+  }));
+  const metrics = ['nfci', 'nfciCredit', 'hyOas', 'curve', 'claims', 'freight', 'starts', 'sentiment', 'revolving', 'delinq', 'sofr', 'effr', 'liquidityNet', 'walcl', 'wtregen', 'rrpontsyd', 'wresbal', 'profits', 'sp500', 'nasdaq', 'vix', 'gpr']
+    .map(key => {
+      const item = series[key];
+      if (!item?.current) return null;
+      return {
+        key, label: item.label, unit: item.unit, date: item.current.date,
+        value: fmt(item.current.value), change: fmt(item.change), changePct: fmt(item.changePct), raw: fmt(item.current.raw)
+      };
+    }).filter(Boolean);
+  return {
+    available: true,
+    fetchedAt: macro.fetchedAt,
+    latestDate: metrics.map(item => item.date).sort().pop() || null,
+    alertCount: blocks.filter(item => item.level === 'alert').length,
+    watchCount: blocks.filter(item => item.level === 'watch').length,
+    blocks,
+    metrics,
+    sources: macro.sources || []
+  };
+}
+
+const MACRO_POSITION_RISK = { BLKC: 100, XAID: 86, CNDX: 82, DEFS: 72, BRIJ: 67, XDW0: 64, CSEMUS: 58, 'VG SMALL': 55, 'VG GLOBAL': 35 };
+function preparaSensibilitatMacro(posicions) {
+  const total = posicions.reduce((sum, position) => sum + (Number(position.valueTotal) || 0), 0);
+  return posicions.filter(position => MACRO_POSITION_RISK[position.ticker] !== undefined && Number(position.valueTotal) > 0)
+    .map(position => ({
+      ticker: position.ticker,
+      valueTotal: Math.round(Number(position.valueTotal) * 100) / 100,
+      weightPct: total ? Math.round(Number(position.valueTotal) / total * 10000) / 100 : 0,
+      sensitivityScore: MACRO_POSITION_RISK[position.ticker]
+    }))
+    .sort((a, b) => b.sensitivityScore * b.valueTotal - a.sensitivityScore * a.valueTotal);
+}
+
+function normalitzaConsell(raw, cartera, exposure, capital, macroContext = null) {
   if (!raw || !Array.isArray(raw.summary) || !raw.summary.length || !Array.isArray(raw.recommendations) || !raw.recommendations.length || !raw.plan || !Array.isArray(raw.markets)) {
     throw new Error('L’informe de consell no té l’estructura esperada.');
   }
@@ -749,7 +797,8 @@ function normalitzaConsell(raw, cartera, exposure, capital) {
     summary: raw.summary.map(String).map(item => item.trim()).filter(Boolean).slice(0, 5),
     recommendations,
     plan,
-    markets
+    markets,
+    macro: macroContext || { available: false, error: 'Context macro no disponible.' }
   };
 }
 
@@ -759,6 +808,13 @@ async function generaConsellMercats() {
   }
 
   const cartera = await carregaCartera();
+  let macroContext;
+  try {
+    macroContext = preparaContextMacro(await loadMacro());
+  } catch (error) {
+    macroContext = { available: false, error: error.message };
+  }
+  if (macroContext.available) macroContext.portfolioSensitivity = preparaSensibilitatMacro(cartera.posicions || []);
   const cashValue = Number(cartera.meta?.cashValue) || 0;
   const investedValue = (cartera.posicions || []).reduce((sum, position) => sum + (Number(position.valueTotal) || 0), 0);
   const totalValue = investedValue + cashValue;
@@ -794,6 +850,14 @@ async function generaConsellMercats() {
     marketList,
     '',
     'La visió estratègica és de 5-10 anys. La visió tàctica és de 6-12 mesos. Usa fonamentals, valoració relativa, cicle macroeconòmic, política monetària, beneficis/revisions i diversificació. El momentum només és un factor secundari.',
+    '',
+    'Context macro obligatori del dashboard de risc macro. Has d’utilitzar-lo explícitament en el resum, les recomanacions i el pla de seguiment. No el substitueixis per una opinió macro genèrica:',
+    JSON.stringify(macroContext, null, 2),
+    '- Compara sempre els blocs entre si i evita conclusions per un únic indicador.',
+    '- Si hi ha blocs en vigilància o alerta, explica quines posicions de la cartera són més sensibles i quins senyals confirmarien o invalidarien el risc.',
+    '- Utilitza també portfolioSensitivity: és el mapa de sensibilitat qualitativa de la pestanya Risc macro combinat amb el valor real de cada posició; no el confonguis amb una probabilitat de pèrdua.',
+    '- El GPR és un índex de notícies de risc geopolític, no una probabilitat de guerra; el VIX és volatilitat implícita de borsa. No els confonguis.',
+    '- Cita la data de les observacions macro quan les utilitzis. Si el context macro no està disponible, digues-ho clarament i no inventis valors.',
     '',
     'Per a cada mercat:',
     '- Dona una tesi curta però concreta.',
@@ -863,7 +927,7 @@ async function generaConsellMercats() {
   } catch {
     throw new Error('El proveïdor del consell no ha retornat JSON vàlid.');
   }
-  return normalitzaConsell(raw, cartera, exposure, capital);
+  return normalitzaConsell(raw, cartera, exposure, capital, macroContext);
 }
 
 function preparaHistorial(messages) {
@@ -1047,6 +1111,15 @@ app.get('/api/health', async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/macro', rateLimit, async (req, res) => {
+  try {
+    const force = req.query.refresh === '1' || req.query.refresh === 'true';
+    res.json(await loadMacro({ force }));
+  } catch (e) {
+    res.status(502).json({ error: `No s’han pogut carregar les dades macro: ${e.message}`, code: 'MACRO_DATA_UNAVAILABLE' });
   }
 });
 
