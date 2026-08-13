@@ -131,47 +131,29 @@ function dateDaysAgo(date, days) {
 }
 
 async function download(id) {
+  const directUrl = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(id)}&cosd=2025-01-01`;
+  const proxyHost = process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const urls = proxyHost
+    ? [{ url: `https://${proxyHost}/api/fred/${encodeURIComponent(id)}`, via: 'FRED via proxy Vercel' }, { url: directUrl, via: 'FRED directe' }]
+    : [{ url: directUrl, via: 'FRED directe' }];
   let fredError;
-  // Les funcions serverless poden trigar més en la primera connexió TLS a FRED.
-  // 3,5 s provocava falsos buits: la font respon, però després del timeout.
-  const attempts = 2;
-  const timeoutMs = process.env.VERCEL ? 10000 : 10000;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
+
+  for (const target of urls) {
     try {
-      const response = await fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(id)}`, {
+      const response = await fetch(target.url, {
         headers: { accept: 'text/csv', 'user-agent': 'cartera-agent/1.0' },
-        signal: AbortSignal.timeout(timeoutMs)
+        signal: AbortSignal.timeout(15000)
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const values = parseCsv(await response.text());
       if (!values.length) throw new Error('resposta sense observacions');
-      return { values, via: 'FRED directe' };
+      return { values, via: target.via };
     } catch (error) {
       fredError = error;
-      if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 250));
     }
   }
 
-  // Vercel pot rebutjar o retardar el CSV de FRED. DBnomics redistribueix
-  // les mateixes sèries originals amb una resposta JSON més estable per a
-  // funcions serverless; la font econòmica continua sent FRED.
-  try {
-    const response = await fetch(`https://api.db.nomics.world/v22/series/FRED/${encodeURIComponent(id)}?observations=1`, {
-      headers: { accept: 'application/json', 'user-agent': 'cartera-agent/1.0' },
-      signal: AbortSignal.timeout(process.env.VERCEL ? 6000 : 10000)
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    const doc = payload?.series?.docs?.[0] || payload?.series?.[0] || payload?.data?.series?.docs?.[0];
-    const periods = doc?.period || doc?.periods || doc?.observation_period || [];
-    const values = doc?.value || doc?.values || [];
-    const parsed = periods.map((date, index) => ({ date: String(date).slice(0, 10), value: Number(values[index]) }))
-      .filter(point => /^\d{4}-\d{2}-\d{2}$/.test(point.date) && Number.isFinite(point.value));
-    if (!parsed.length) throw new Error('resposta sense observacions');
-    return { values: parsed, via: 'DBnomics · mirall de FRED' };
-  } catch (mirrorError) {
-    throw new Error(`FRED: ${fredError?.message || 'error'}; DBnomics: ${mirrorError.message}`);
-  }
+  throw new Error(`FRED: ${fredError?.message || 'error'}`);
 }
 
 async function limitedMap(entries, limit, worker) {
