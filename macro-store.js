@@ -2,6 +2,8 @@
 // de vigilància: conserva la data de cada observació i no omple buits.
 
 const XLSX = require('xlsx');
+const fs = require('fs');
+const path = require('path');
 
 const SERIES = {
   nfci: {
@@ -92,6 +94,15 @@ const SERIES = {
 
 const CACHE_MS = 15 * 60 * 1000;
 let cache = { fetchedAt: 0, payload: null };
+const BUNDLED_CACHE_FILE = path.join(__dirname, 'data', 'macro_cache.json');
+
+function readBundledMacro() {
+  try {
+    return JSON.parse(fs.readFileSync(BUNDLED_CACHE_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
 
 function parseCsv(csv) {
   const lines = String(csv).trim().split(/\r?\n/).slice(1);
@@ -519,6 +530,17 @@ function buildMacroOutlook(series, blocks, marketSentiment) {
 
 async function loadMacro({ force = false } = {}) {
   if (!force && cache.payload && Date.now() - cache.fetchedAt < CACHE_MS) return cache.payload;
+  // Les funcions de Vercel tenen una ruta de sortida diferent cap a FRED que
+  // l'entorn local. Servim una captura real generada localment si existeix,
+  // en lloc d'inventar n/d o fer esperar el navegador fins al timeout.
+  const bundled = readBundledMacro();
+  if (process.env.VERCEL && bundled) {
+    return {
+      ...bundled,
+      servedFromCache: true,
+      cacheNotice: 'Captura real empaquetada; actualitzada quan es publica una nova versió del dashboard.'
+    };
+  }
   const retrieval = {};
   const entries = await limitedMap(Object.entries(SERIES), 5, async ([key, meta]) => {
     try {

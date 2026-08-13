@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "macro:refresh": "node scripts/update-macro-cache.js",
     "test": "node scenario-model.test.js && node macro-store.test.js && node sheet-store.test.js && node --check server.js"
   },
   "engines": {
