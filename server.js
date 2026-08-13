@@ -185,6 +185,28 @@ function creaNotaEscenari(scenario) {
   ].join(' ');
 }
 
+// Fitxa documental persistent dels fons recopilats per a les anàlisis.
+// Es carrega al servidor (mai des del navegador) i s'inclou explícitament
+// en el context de cada informe de Consell perquè no depengui de la memòria
+// de la conversa ni només de les dades de mercat del cache.
+function carregaRecercaFons() {
+  const file = path.join(__dirname, 'data', 'funds', 'ISIN_research_2026-08-13.md');
+  try {
+    const text = fs.readFileSync(file, 'utf8').trim();
+    return {
+      available: Boolean(text),
+      file: 'data/funds/ISIN_research_2026-08-13.md',
+      content: text.slice(0, 30000)
+    };
+  } catch (error) {
+    return {
+      available: false,
+      file: 'data/funds/ISIN_research_2026-08-13.md',
+      error: error.message
+    };
+  }
+}
+
 async function carregaCartera({ force = false } = {}) {
   const settingsRaw = fs.readFileSync(path.join(__dirname, 'data', 'settings.json'), 'utf8');
   const settings = JSON.parse(settingsRaw);
@@ -817,6 +839,7 @@ async function generaConsellMercats() {
   }
 
   const cartera = await carregaCartera();
+  const fundResearch = carregaRecercaFons();
   let macroContext;
   try {
     macroContext = preparaContextMacro(await loadMacro());
@@ -889,6 +912,12 @@ async function generaConsellMercats() {
     '',
     'Fonts prioritàries proporcionades per l’usuari. Prioritza-les quan siguin pertinents i contrasta-les segons la naturalesa de la dada:',
     sourceList,
+    '',
+    'Dossier documental de fons obligatori per a aquest informe:',
+    '- Consulta aquest dossier quan analitzis qualsevol posició de tipus Fons o quan comparis renda fixa, renda variable global, emergents, small caps o salut.',
+    '- Usa’l com a font de context i identificació del producte, però comprova al web les dades sensibles a data (NAV, patrimoni, rendibilitat, costos i composició).',
+    '- No presentis el dossier com una font web actualitzada automàticament: indica la data de referència i separa dades documentades d’inferències.',
+    JSON.stringify(fundResearch, null, 2),
     '',
     'Perfil declarat i restriccions:',
     JSON.stringify(cartera.meta?.perfil || {}, null, 2),
