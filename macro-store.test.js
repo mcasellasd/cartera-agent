@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { buildMarketSentiment, buildMacroOutlook } = require('./macro-store');
+const { buildMarketSentiment, buildMacroOutlook, makeSeries } = require('./macro-store');
 
 function series(key, value, change = 0, changePct = 0, date = '2026-08-10') {
   return { key, current: { value, date }, change, changePct, change3m: change, change6m: change, change3mPct: changePct, change6mPct: changePct, unit: key === 'hyOas' ? '%' : 'índex', label: key };
@@ -57,5 +57,17 @@ assert.equal(outlook.credit.shortLabel, 'Deteriorament probable');
 assert.equal(outlook.market.direction, 'negative');
 assert.ok(outlook.market.watch.includes('VIX'));
 assert.ok(outlook.geopolitical.mediumTerm.includes('3–6 mesos'));
+
+const cpi = makeSeries('inflation', [
+  {date:'2025-01-01', value:100}, {date:'2025-02-01', value:100.2}, {date:'2025-03-01', value:100.4},
+  {date:'2025-04-01', value:100.6}, {date:'2025-05-01', value:100.8}, {date:'2025-06-01', value:101.0},
+  {date:'2025-07-01', value:101.2}, {date:'2025-08-01', value:101.4}, {date:'2025-09-01', value:101.6},
+  {date:'2025-10-01', value:101.8}, {date:'2025-11-01', value:102.0}, {date:'2025-12-01', value:102.2},
+  {date:'2026-01-01', value:103}, {date:'2026-02-01', value:103.2}
+]);
+assert.equal(cpi.unit, '%');
+assert.ok(Math.abs(cpi.current.value - 3) < 0.01);
+assert.equal(cpi.current.raw, 103.2);
+assert.ok(cpi.observations.length > 0);
 
 console.log('Market sentiment: OK');

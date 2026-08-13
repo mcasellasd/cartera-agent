@@ -22,6 +22,22 @@ const SERIES = {
     id: 'T10Y3M', label: 'Corba 10 anys − 3 mesos', unit: 'punts percentuals', freq: 'diària',
     source: 'U.S. Treasury via FRED', url: 'https://fred.stlouisfed.org/series/T10Y3M'
   },
+  inflation: {
+    id: 'CPIAUCSL', label: 'Inflació CPI interanual', unit: '%', freq: 'mensual', transform: 'yoy',
+    source: 'U.S. Bureau of Labor Statistics via FRED', url: 'https://fred.stlouisfed.org/series/CPIAUCSL'
+  },
+  coreInflation: {
+    id: 'CPILFESL', label: 'Inflació subjacent interanual', unit: '%', freq: 'mensual', transform: 'yoy',
+    source: 'U.S. Bureau of Labor Statistics via FRED', url: 'https://fred.stlouisfed.org/series/CPILFESL'
+  },
+  policyRate: {
+    id: 'DFF', label: 'Tipus dels Fed Funds', unit: '%', freq: 'diària',
+    source: 'Federal Reserve Bank of New York via FRED', url: 'https://fred.stlouisfed.org/series/DFF'
+  },
+  ust10y: {
+    id: 'DGS10', label: 'Tresor EUA 10 anys', unit: '%', freq: 'diària',
+    source: 'U.S. Treasury via FRED', url: 'https://fred.stlouisfed.org/series/DGS10'
+  },
   claims: {
     id: 'ICSA', label: 'Sol·licituds inicials d’atur', unit: 'milers', freq: 'setmanal',
     source: 'U.S. Bureau of Labor Statistics via FRED', url: 'https://fred.stlouisfed.org/series/ICSA'
@@ -141,8 +157,21 @@ function dateDaysAgo(date, days) {
   return d.toISOString().slice(0, 10);
 }
 
+function yearOverYear(values) {
+  const ordered = values.filter(item => item && Number.isFinite(Number(item.value))).sort((a, b) => a.date.localeCompare(b.date));
+  return ordered.map(current => {
+    const previous = atOrBefore(ordered, dateDaysAgo(current.date, 365));
+    if (!previous || previous.value === 0) return null;
+    return {
+      date: current.date,
+      value: (current.value / previous.value - 1) * 100,
+      raw: current.value
+    };
+  }).filter(Boolean);
+}
+
 async function download(id) {
-  const directUrl = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(id)}&cosd=2025-01-01`;
+  const directUrl = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(id)}&cosd=2024-01-01`;
   const proxyHost = process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
   const urls = proxyHost
     ? [{ url: `https://${proxyHost}/api/fred/${encodeURIComponent(id)}`, via: 'FRED via proxy Vercel' }, { url: directUrl, via: 'FRED directe' }]
@@ -197,7 +226,8 @@ async function downloadGpr() {
 
 function makeSeries(key, values) {
   const meta = SERIES[key];
-  const data = observations(values);
+  const transformed = meta.transform === 'yoy' ? yearOverYear(values) : values;
+  const data = observations(transformed);
   const current = last(data);
   const previous = current ? atOrBefore(data, dateDaysAgo(current.date, meta.freq === 'diària' ? 30 : meta.freq === 'setmanal' ? 91 : 90)) : null;
   const threeMonthsAgo = current ? atOrBefore(data, dateDaysAgo(current.date, 91)) : null;
@@ -505,6 +535,8 @@ function buildMacroOutlook(series, blocks, marketSentiment) {
     make('credit', 'spreads i l’accés al crèdit', [signal('hyOas', 0.25, 'up'), signal('nfciCredit', 0.12, 'up')], 'Vigila si l’OAS high yield i el NFCI crèdit s’obren durant diverses observacions.'),
     make('financial', 'condicions de finançament', [signal('nfci', 0.10, 'up')], 'Vigila una pujada del NFCI cap a zero o per sobre, especialment si coincideix amb crèdit més car.'),
     make('curve', 'senyal de la corba de tipus', [signal('curve', 0.25, 'up')], 'Vigila si el re-steepening coincideix amb pitjor ocupació, activitat o crèdit.'),
+    make('inflation', 'inflació general i subjacent', [signal('inflation', 0.25, 'up'), signal('coreInflation', 0.25, 'up')], 'Vigila si la inflació subjacent torna a accelerar i retarda les possibles baixades de tipus.'),
+    make('rates', 'cost del diner i rendibilitat del Tresor', [signal('policyRate', 0.25, 'up'), signal('ust10y', 0.25, 'up')], 'Vigila una pujada dels tipus de mercat que coincideixi amb inflació persistent o condicions financeres més estrictes.'),
     make('earnings', 'beneficis corporatius', [signal('profits', 3, 'down', true)], 'Vigila una caiguda de beneficis que es mantingui en la següent dada trimestral.'),
     make('activity', 'activitat i logística', [signal('claims', 5, 'up', true), signal('freight', 3, 'down', true), signal('starts', 6, 'down', true), signal('sentiment', 3, 'down', false)], 'Vigila confirmació conjunta entre transport, habitatge, atur i confiança.'),
     make('consumerStress', 'estrès del consumidor', [signal('revolving', 3, 'up', true), signal('delinq', 0.10, 'up')], 'Vigila que el revolving i la morositat pugin alhora; un sol dels dos no és suficient.'),
@@ -575,4 +607,4 @@ async function loadMacro({ force = false } = {}) {
   return payload;
 }
 
-module.exports = { loadMacro, SERIES, buildMarketSentiment, buildMacroOutlook };
+module.exports = { loadMacro, SERIES, buildMarketSentiment, buildMacroOutlook, makeSeries, yearOverYear };

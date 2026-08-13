@@ -694,6 +694,7 @@ function preparaContextMacro(macro) {
   if (!macro || !Array.isArray(macro.series)) return { available: false, error: 'Dades macro no disponibles.' };
   const labels = {
     credit: 'Crèdit', financial: 'Condicions financeres', curve: 'Corba de tipus',
+    inflation: 'Inflació', rates: 'Tipus d’interès',
     earnings: 'Beneficis', activity: 'Activitat', interbank: 'Liquiditat interbancària',
     consumerStress: 'Consumidor endeutat', liquidity: 'Liquiditat neta EUA',
     market: 'Mercat i volatilitat', geopolitical: 'Risc geopolític'
@@ -704,7 +705,7 @@ function preparaContextMacro(macro) {
     key, label: labels[key] || key, level: assessment.level, reason: assessment.reason,
     outlook: macro.assessment?.outlook?.[key] || null
   }));
-  const metrics = ['nfci', 'nfciCredit', 'hyOas', 'curve', 'claims', 'freight', 'starts', 'sentiment', 'revolving', 'delinq', 'sofr', 'effr', 'liquidityNet', 'walcl', 'wtregen', 'rrpontsyd', 'wresbal', 'profits', 'sp500', 'nasdaq', 'vix', 'gpr']
+  const metrics = ['nfci', 'nfciCredit', 'hyOas', 'curve', 'inflation', 'coreInflation', 'policyRate', 'ust10y', 'claims', 'freight', 'starts', 'sentiment', 'revolving', 'delinq', 'sofr', 'effr', 'liquidityNet', 'walcl', 'wtregen', 'rrpontsyd', 'wresbal', 'profits', 'sp500', 'nasdaq', 'vix', 'gpr']
     .map(key => {
       const item = series[key];
       if (!item?.current) return null;
@@ -865,6 +866,7 @@ async function generaConsellMercats() {
     '- Si hi ha blocs en vigilància o alerta, explica quines posicions de la cartera són més sensibles i quins senyals confirmarien o invalidarien el risc.',
     '- Utilitza també portfolioSensitivity: és el mapa de sensibilitat qualitativa de la pestanya Risc macro combinat amb el valor real de cada posició; no el confonguis amb una probabilitat de pèrdua.',
     '- marketSentiment és un resum derivat de VIX, tendència S&P 500/Nasdaq, crèdit high yield i GPR. No el comptis com un bloc macro addicional ni el sumis dues vegades als blocs market, credit o geopolitical.',
+    '- Inflació i tipus d’interès són context transversal, no blocs addicionals del marcador. Utilitza’ls per interpretar la corba, les condicions financeres, la liquiditat i les valoracions; no els comptis dues vegades.',
     '- Explica si marketSentiment confirma o contradiu els blocs de crèdit, liquiditat, activitat i mercat. Si és unknown o té menys de tres components disponibles, indica que no hi ha dades suficients i no el tractis com a normal.',
     '- Cada bloc inclou outlook de curt termini (1–3 mesos) i mitjà termini (3–6 mesos), basat en canvis de 3 i 6 mesos. Presenta-ho com una tendència/escenari amb confiança, evidència i senyals de confirmació; no ho descriguis com una predicció certa ni com una ordre de moure fons.',
     '- El GPR és un índex de notícies de risc geopolític, no una probabilitat de guerra; el VIX és volatilitat implícita de borsa. No els confonguis.',

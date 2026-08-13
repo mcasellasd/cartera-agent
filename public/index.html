@@ -703,6 +703,8 @@ body.chat-open #chat{transform:none}
       <div><b>SOFR−EFFR:</b> diferència entre el finançament repo garantit i el tipus efectiu dels fons federals. Un salt ràpid pot indicar fricció de liquiditat, però cal confirmar-lo.</div>
       <div><b>Revolving i morositat:</b> més targetes revolving no implica per si sol estrès. El senyal és més preocupant quan el saldo creix i també augmenten els impagaments.</div>
       <div><b>Liquiditat neta:</b> proxy calculat com actius de la Fed menys TGA menys reverse repo. És un vent de cua o de cara, no una garantia que la borsa pugi o baixi.</div>
+      <div><b>Inflació general i subjacent:</b> la primera inclou tot el cistell CPI; la subjacent exclou aliments i energia i ajuda a veure la pressió més persistent.</div>
+      <div><b>Tipus d’interès:</b> Fed Funds és el tipus de política monetària; el Tresor a 10 anys és un tipus de mercat que incorpora inflació, creixement i prima de termini.</div>
     </div>
     <div class="macro-method"><b>Com es posa el semàfor?</b> Els llindars són regles de vigilància transparents, no lleis del mercat. Per exemple: GPR MA30 ≥ 150 = vigilància i ≥ 250 = alerta; NFCI positiu o pujant ràpid = vigilància; OAS high yield molt alt o obrint-se ràpid = alerta. La perspectiva usa el canvi observat als últims 3 i 6 mesos per construir escenaris de 1–3 i 3–6 mesos; no és una predicció ni una ordre de moure fons. El sistema conserva les dades encara que arribin amb retard i mostra «n/d» si una font no respon.</div>
   </details>
@@ -953,6 +955,8 @@ function renderAdviceMarketSentiment(sentiment){
 function renderAdviceMacroOutlook(macro){
   const outlookBlocks=[...(macro.blocks||[])];
   if(macro.marketSentiment?.outlook) outlookBlocks.push({key:'marketSentiment',label:'Sentiments de mercat',outlook:macro.marketSentiment.outlook});
+  if(macro.outlook?.inflation) outlookBlocks.push({key:'inflation',label:'Inflació · context',outlook:macro.outlook.inflation});
+  if(macro.outlook?.rates) outlookBlocks.push({key:'rates',label:'Tipus d’interès · context',outlook:macro.outlook.rates});
   const rows=outlookBlocks.map(block=>{
     const outlook=macro.outlook?.[block.key]||block.outlook;
     if(!outlook) return '';
@@ -2361,8 +2365,13 @@ const MACRO_REAL_BLOCKS=[
   {key:'market',title:'Mercat i volatilitat',metrics:[['sp500','S&P 500'],['nasdaq','Nasdaq'],['vix','VIX']],reason:'És confirmació de mercat, no amplitud interna: no substitueix MM200 ni advance/decline.',info:{what:'Contrasta la tendència recent dels principals índexs amb la volatilitat implícita de l’S&P 500.',why:'El preu és la confirmació final: un risc macro que no afecta els mercats pot ser menys urgent que un deteriorament que ja s’hi reflecteix.',read:'Una borsa feble amb VIX alt és més negativa que una baixada ordenada amb volatilitat baixa.',limit:'El VIX és de mercat, no de l’economia; i aquests índexs ponderats poden amagar una amplitud interna feble.',portfolio:'Una caiguda concentrada en Nasdaq o S&P pot afectar especialment XAID, CNDX i BLKC.'}},
   {key:'geopolitical',title:'Risc geopolític',metrics:[['gpr','GPR · mitjana 30 dies']],reason:'Índex de notícies de Caldara–Iacoviello; una mesura de tensió geopolítica, no una probabilitat de guerra.',info:{what:'Mesura la intensitat de notícies sobre conflictes, tensions i riscos geopolítics.',why:'Pot alterar energia, comerç, primes de risc, cadenes de subministrament i confiança.',read:'Una pujada del GPR és una alerta de context; és més rellevant si també pugen el VIX i els spreads de crèdit.',limit:'Compta notícies, no danys econòmics reals. Pot pujar sense una caiguda borsària immediata o sostinguda.',portfolio:'Les exposicions globals, emergents, industrials, energia i actius de risc poden reaccionar de manera desigual.'}}
 ];
+const MACRO_CONTEXT_CARDS=[
+  {key:'inflation',title:'Inflació',metrics:[['inflation','CPI interanual'],['coreInflation','CPI subjacent']],info:{what:'Mostra la variació interanual dels preus de consum als EUA. La dada subjacent exclou aliments i energia per veure millor la pressió persistent.',why:'La inflació condiciona el poder adquisitiu, els marges empresarials i el marge que té la Fed per abaixar o mantenir els tipus.',read:'Una baixada de la inflació general és positiva, però si la subjacent es manté alta pot retardar les retallades. Mira la tendència de diversos mesos, no una sola dada.',limit:'És una dada dels EUA, no d’Espanya o de la cartera; a més, la composició del cistell no representa totes les llars.',portfolio:'Tipus alts durant més temps solen pressionar growth, tecnologia, small caps i actius de llarga durada, com XAID, CNDX i BLKC.'}},
+  {key:'rates',title:'Tipus d’interès',metrics:[['policyRate','Fed Funds'],['effr','EFFR'],['ust10y','Tresor 10 anys']],info:{what:'Combina el tipus de política monetària, el tipus efectiu overnight i el rendiment del Tresor dels EUA a 10 anys.',why:'Els tipus determinen el cost del finançament i serveixen per descomptar els beneficis futurs. També expliquen bona part dels moviments de la corba.',read:'Una pujada dels tipus curts pot endurir les condicions; una pujada del 10 anys pot pressionar valoracions encara que la Fed no canviï el tipus oficial. El nivell no és, per si sol, una alerta.',limit:'El Tresor a 10 anys reflecteix també expectatives de creixement, inflació i prima de termini; no és una previsió segura dels futurs tipus oficials.',portfolio:'El creixement, els semiconductors i les exposicions molt valorades solen ser més sensibles a pujades dels rendiments; la renda fixa curta pot actuar com a amortidor, però amb risc de preu.'}}
+];
 let macroData=null, macroChart=null, macroLoading=false;
 const macroStatusLabel={ok:'Normal',watch:'Vigilància',alert:'Alerta',unknown:'Sense dades'};
+const macroContextStatusLabel={ok:'Context',watch:'Pressió',alert:'Alerta',unknown:'Sense dades'};
 function macroSeries(key){return macroData?.series?.find(x=>x.key===key)||null;}
 function macroNum(value,digits=2){return value===null||value===undefined||!Number.isFinite(Number(value))?'n/d':Number(value).toLocaleString('ca-ES',{minimumFractionDigits:digits,maximumFractionDigits:digits});}
 function macroMetricHtml(key,label){
@@ -2376,6 +2385,23 @@ function macroInfoHtml(block){
   const info=block.info||{};
   const rows=[['Què mesura',info.what],['Per què interessa',info.why],['Com s’ha de llegir',info.read],['Limitació',info.limit],['Relació amb la cartera',info.portfolio]];
   return `<details class="macro-card-guide"><summary>Com s’ha de llegir?</summary><div class="macro-card-guide-grid">${rows.filter(([,text])=>text).map(([label,text])=>`<div class="macro-card-guide-item"><b>${label}</b><span>${esc(text)}</span></div>`).join('')}</div></details>`;
+}
+function macroContextStatus(key){
+  const value=keyName=>macroSeries(keyName)?.current?.value;
+  const change=keyName=>macroSeries(keyName)?.change;
+  const available=keyName=>Boolean(macroSeries(keyName)?.current);
+  if(key==='inflation'){
+    if(!available('inflation')&&!available('coreInflation')) return 'unknown';
+    const headline=value('inflation'), core=value('coreInflation');
+    return (headline!==null&&headline>=4)||(core!==null&&core>=4)?'alert':(headline!==null&&headline>=3)||(core!==null&&core>=3)?'watch':'ok';
+  }
+  if(!available('policyRate')&&!available('ust10y')) return 'unknown';
+  return (change('policyRate')!==null&&change('policyRate')>=.25)||(change('ust10y')!==null&&change('ust10y')>=.5)?'watch':'ok';
+}
+function macroContextReason(key,status){
+  if(status==='unknown') return 'No hi ha prou observacions per interpretar aquest context.';
+  if(key==='inflation') return status==='alert'?'La inflació general o subjacent continua prou alta per mantenir pressió sobre la política monetària.':status==='watch'?'La inflació encara mereix vigilància; cal confirmar que la baixada sigui sostinguda.':'La inflació disponible no mostra una pressió excepcional en la darrera observació.';
+  return status==='watch'?'Els rendiments han pujat recentment; cal veure si això endureix també el crèdit i les valoracions.':'Els tipus es mostren com a context de finançament; el seu nivell no és una alerta automàtica.';
 }
 function macroOutlookHtml(outlook){
   if(!outlook) return '';
@@ -2402,6 +2428,11 @@ function renderMarketSentimentCard(){
   const sources=sourceKeys.map(key=>macroSeries(key)).filter(Boolean).map(source=>`<a href="${source.url}" target="_blank" rel="noreferrer">${esc(source.source)} · sèrie ${esc(source.id)}</a>`).join(' · ');
   return `<article class="macro-real-card macro-sentiment-card"><div class="macro-real-head"><div><h3>Sentiments de mercat</h3><small class="macro-derived-label">Índex propi del dashboard · no oficial</small></div><span class="real-status ${level}">${esc(sentiment.label||macroStatusLabel[level])}</span></div><div class="macro-sentiment-score"><strong>${sentiment.score===null||sentiment.score===undefined?'n/d':`${sentiment.score}/${sentiment.maxScore}`}</strong><span>${esc(sentiment.reason)}</span></div><div class="macro-sentiment-components">${components}</div>${macroOutlookHtml(sentiment.outlook)}<details class="macro-card-guide"><summary>Què vol dir aquest índex?</summary><div class="macro-card-guide-grid"><div class="macro-card-guide-item"><b>Què combina</b><span>VIX, tendència de l’S&P 500 i Nasdaq, crèdit high yield i GPR geopolític.</span></div><div class="macro-card-guide-item"><b>Per què interessa</b><span>Resumeix si el mercat està confirmant o contradient el deteriorament dels altres blocs.</span></div><div class="macro-card-guide-item"><b>Com s’ha de llegir</b><span>Constructiu no vol dir segur i tensió no vol dir vendre. Cal mirar quins components han canviat i durant quant temps.</span></div><div class="macro-card-guide-item"><b>Limitació</b><span>És una regla de vigilància del dashboard i no compta com un bloc addicional del marcador 0/9.</span></div></div></details>${sources?`<div class="macro-source-list">${sources}</div>`:''}</article>`;
 }
+function renderMacroContextCard(card){
+  const status=macroContextStatus(card.key), source=macroSeries(card.metrics[0][0]);
+  const outlook=macroData?.assessment?.outlook?.[card.key];
+  return `<article class="macro-real-card"><div class="macro-real-head"><h3>${card.title}</h3><span class="real-status ${status}">${macroContextStatusLabel[status]}</span></div><div class="macro-metrics">${card.metrics.map(([key,label])=>macroMetricHtml(key,label)).join('')}</div><p class="macro-reason"><b>Per què interessa:</b> ${esc(macroContextReason(card.key,status))}</p>${macroOutlookHtml(outlook)}${macroInfoHtml(card)}${source?`<a class="source-link" href="${source.url}" target="_blank" rel="noreferrer">${source.source} · sèrie ${source.id}</a>`:''}</article>`;
+}
 function levelForClass(level){return ['ok','watch','alert','unknown'].includes(level)?level:'unknown';}
 function combinedMacroStatus(key){
   if(!macroData?.assessment?.blocks) return 'unknown';
@@ -2413,7 +2444,7 @@ function combinedMacroStatus(key){
 function renderRealMacro(){
   const grid=document.getElementById('macro-real-grid'), statusEl=document.getElementById('macro-data-status'); if(!grid||!statusEl) return;
   if(!macroData){grid.innerHTML='<div class="macro-real-card" style="grid-column:1/-1;color:var(--dim)">Selecciona «Risc macro» per descarregar les darreres observacions oficials.</div>';return;}
-  grid.innerHTML=renderMarketSentimentCard()+MACRO_REAL_BLOCKS.map(block=>{const level=combinedMacroStatus(block.key), assessment=macroData.assessment.blocks[block.key]||macroData.assessment.blocks.credit, source=macroSeries(block.metrics[0][0]), outlook=macroData.assessment.outlook?.[block.key]; return `<article class="macro-real-card"><div class="macro-real-head"><h3>${block.title}</h3><span class="real-status ${level}">${macroStatusLabel[level]}</span></div><div class="macro-metrics">${block.metrics.map(([key,label])=>macroMetricHtml(key,label)).join('')}</div><p class="macro-reason"><b>Per què interessa:</b> ${esc(assessment.reason||block.reason)}</p>${macroOutlookHtml(outlook)}${macroInfoHtml(block)}${source?`<a class="source-link" href="${source.url}" target="_blank" rel="noreferrer">${source.source} · sèrie ${source.id}</a>`:''}</article>`;}).join('');
+  grid.innerHTML=renderMarketSentimentCard()+MACRO_CONTEXT_CARDS.map(renderMacroContextCard).join('')+MACRO_REAL_BLOCKS.map(block=>{const level=combinedMacroStatus(block.key), assessment=macroData.assessment.blocks[block.key]||macroData.assessment.blocks.credit, source=macroSeries(block.metrics[0][0]), outlook=macroData.assessment.outlook?.[block.key]; return `<article class="macro-real-card"><div class="macro-real-head"><h3>${block.title}</h3><span class="real-status ${level}">${macroStatusLabel[level]}</span></div><div class="macro-metrics">${block.metrics.map(([key,label])=>macroMetricHtml(key,label)).join('')}</div><p class="macro-reason"><b>Per què interessa:</b> ${esc(assessment.reason||block.reason)}</p>${macroOutlookHtml(outlook)}${macroInfoHtml(block)}${source?`<a class="source-link" href="${source.url}" target="_blank" rel="noreferrer">${source.source} · sèrie ${source.id}</a>`:''}</article>`;}).join('');
   const core=['credit','curve','earnings','activity','consumerStress','interbank','liquidity','market','geopolitical'], statuses=core.map(combinedMacroStatus), alerts=statuses.filter(level=>level==='alert').length, watches=statuses.filter(level=>level==='watch').length, available=statuses.filter(level=>level!=='unknown').length;
   document.getElementById('macro-score').textContent=available?`${alerts}/${available} alertes`:'—/9'; document.getElementById('macro-meter-fill').style.width=available?`${Math.min(100,(alerts+watches*.5)/available*100)}%`:'0%'; document.getElementById('macro-score-label').textContent=!available?'Sense dades suficients per calcular el marcador':alerts>=3?'Alerta: tres o més blocs mostren deteriorament':alerts>=1||watches>=3?'Vigilància: confirma si el deteriorament s’estén':'Normal: sense deteriorament agregat';
   const latest=macroData.series.flatMap(s=>s.observations||[]).map(x=>x.date).sort().pop()||'', errors=macroData.errors?.length||0, loaded=macroData.series.filter(s=>s.current).length;

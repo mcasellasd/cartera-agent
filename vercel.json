@@ -13,7 +13,7 @@
   "routes": [
     {
       "src": "/api/fred/([A-Za-z0-9_]+)",
-      "dest": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=$1&cosd=2025-01-01"
+      "dest": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=$1&cosd=2024-01-01"
     },
     {
       "src": "/api/(.*)",
