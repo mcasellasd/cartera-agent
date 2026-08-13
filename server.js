@@ -708,6 +708,7 @@ function preparaContextMacro(macro) {
         value: fmt(item.current.value), change: fmt(item.change), changePct: fmt(item.changePct), raw: fmt(item.current.raw)
       };
     }).filter(Boolean);
+  const marketSentiment = macro.assessment?.marketSentiment || null;
   return {
     available: true,
     fetchedAt: macro.fetchedAt,
@@ -716,6 +717,7 @@ function preparaContextMacro(macro) {
     watchCount: blocks.filter(item => item.level === 'watch').length,
     blocks,
     metrics,
+    marketSentiment,
     sources: macro.sources || []
   };
 }
@@ -856,6 +858,8 @@ async function generaConsellMercats() {
     '- Compara sempre els blocs entre si i evita conclusions per un únic indicador.',
     '- Si hi ha blocs en vigilància o alerta, explica quines posicions de la cartera són més sensibles i quins senyals confirmarien o invalidarien el risc.',
     '- Utilitza també portfolioSensitivity: és el mapa de sensibilitat qualitativa de la pestanya Risc macro combinat amb el valor real de cada posició; no el confonguis amb una probabilitat de pèrdua.',
+    '- marketSentiment és un resum derivat de VIX, tendència S&P 500/Nasdaq, crèdit high yield i GPR. No el comptis com un bloc macro addicional ni el sumis dues vegades als blocs market, credit o geopolitical.',
+    '- Explica si marketSentiment confirma o contradiu els blocs de crèdit, liquiditat, activitat i mercat. Si és unknown o té menys de tres components disponibles, indica que no hi ha dades suficients i no el tractis com a normal.',
     '- El GPR és un índex de notícies de risc geopolític, no una probabilitat de guerra; el VIX és volatilitat implícita de borsa. No els confonguis.',
     '- Cita la data de les observacions macro quan les utilitzis. Si el context macro no està disponible, digues-ho clarament i no inventis valors.',
     '',

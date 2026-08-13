@@ -131,23 +131,45 @@ function dateDaysAgo(date, days) {
 }
 
 async function download(id) {
-  let lastError;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  let fredError;
+  const attempts = process.env.VERCEL ? 1 : 2;
+  const timeoutMs = process.env.VERCEL ? 3500 : 10000;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       const response = await fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(id)}`, {
         headers: { accept: 'text/csv', 'user-agent': 'cartera-agent/1.0' },
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(timeoutMs)
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const values = parseCsv(await response.text());
       if (!values.length) throw new Error('resposta sense observacions');
-      return values;
+      return { values, via: 'FRED directe' };
     } catch (error) {
-      lastError = error;
+      fredError = error;
       if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 250));
     }
   }
-  throw new Error(`FRED ${id}: ${lastError?.message || 'error desconegut'}`);
+
+  // Vercel pot rebutjar o retardar el CSV de FRED. DBnomics redistribueix
+  // les mateixes sèries originals amb una resposta JSON més estable per a
+  // funcions serverless; la font econòmica continua sent FRED.
+  try {
+    const response = await fetch(`https://api.db.nomics.world/v22/series/FRED/${encodeURIComponent(id)}?observations=1`, {
+      headers: { accept: 'application/json', 'user-agent': 'cartera-agent/1.0' },
+      signal: AbortSignal.timeout(process.env.VERCEL ? 6000 : 10000)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const doc = payload?.series?.docs?.[0] || payload?.series?.[0] || payload?.data?.series?.docs?.[0];
+    const periods = doc?.period || doc?.periods || doc?.observation_period || [];
+    const values = doc?.value || doc?.values || [];
+    const parsed = periods.map((date, index) => ({ date: String(date).slice(0, 10), value: Number(values[index]) }))
+      .filter(point => /^\d{4}-\d{2}-\d{2}$/.test(point.date) && Number.isFinite(point.value));
+    if (!parsed.length) throw new Error('resposta sense observacions');
+    return { values: parsed, via: 'DBnomics · mirall de FRED' };
+  } catch (mirrorError) {
+    throw new Error(`FRED: ${fredError?.message || 'error'}; DBnomics: ${mirrorError.message}`);
+  }
 }
 
 async function limitedMap(entries, limit, worker) {
@@ -166,7 +188,7 @@ async function limitedMap(entries, limit, worker) {
 
 async function downloadGpr() {
   const response = await fetch('https://www.matteoiacoviello.com/gpr_files/data_gpr_daily_recent.xls', {
-    headers: { 'user-agent': 'cartera-agent/1.0' }, signal: AbortSignal.timeout(20000)
+    headers: { 'user-agent': 'cartera-agent/1.0' }, signal: AbortSignal.timeout(process.env.VERCEL ? 8000 : 20000)
   });
   if (!response.ok) throw new Error(`GPR: HTTP ${response.status}`);
   const workbook = XLSX.read(Buffer.from(await response.arrayBuffer()), { type: 'buffer' });
@@ -191,6 +213,96 @@ function makeSeries(key, values) {
     yearChange: delta(current, yearAgo),
     observations: data.slice(-80),
     latestRaw: current?.raw ?? null
+  };
+}
+
+function buildMarketSentiment(series) {
+  const byKey = Object.fromEntries(series.map(item => [item.key, item]));
+  const current = key => byKey[key]?.current || null;
+  const changePct = key => byKey[key]?.changePct ?? null;
+  const value = key => current(key)?.value ?? null;
+  const date = key => current(key)?.date || null;
+  const levelFor = (score) => score >= 2 ? 'alert' : score >= 1 ? 'watch' : 'ok';
+  const component = (key, label, level, details) => ({ key, label, level, ...details });
+
+  const vixValue = value('vix');
+  const vixLevel = vixValue === null ? 'unknown' : levelFor(vixValue >= 25 ? 2 : vixValue >= 20 ? 1 : 0);
+  const vix = component('vix', 'VIX · por i volatilitat', vixLevel, {
+    value: vixValue,
+    unit: 'índex',
+    date: date('vix'),
+    changePct: changePct('vix'),
+    explanation: 'Mesura la volatilitat que el mercat d’opcions espera per a l’S&P 500; no és una predicció de direcció.'
+  });
+
+  const spChange = changePct('sp500');
+  const nasdaqChange = changePct('nasdaq');
+  const priceAvailable = spChange !== null || nasdaqChange !== null;
+  const priceLevel = !priceAvailable ? 'unknown' : levelFor(
+    (spChange !== null && spChange <= -5) ? 2 :
+      ((spChange !== null && spChange < 0) || (nasdaqChange !== null && spChange !== null && nasdaqChange < spChange - 3)) ? 1 : 0
+  );
+  const price = component('priceTrend', 'Tendència de la borsa', priceLevel, {
+    sp500ChangePct: spChange,
+    nasdaqChangePct: nasdaqChange,
+    date: [date('sp500'), date('nasdaq')].filter(Boolean).sort().pop() || null,
+    explanation: 'Compara el moviment recent dels dos índexs; una pujada sostinguda només per pocs valors pot amagar una participació feble.'
+  });
+
+  const hyValue = value('hyOas');
+  const hyChange = byKey.hyOas?.change ?? null;
+  const creditLevel = hyValue === null && hyChange === null ? 'unknown' : levelFor(
+    (hyValue !== null && hyValue >= 5) || (hyChange !== null && hyChange >= 0.75) ? 2 :
+      ((hyValue !== null && hyValue >= 4) || (hyChange !== null && hyChange >= 0.25)) ? 1 : 0
+  );
+  const credit = component('credit', 'Crèdit high yield', creditLevel, {
+    value: hyValue,
+    unit: '%',
+    change: hyChange,
+    date: date('hyOas'),
+    explanation: 'L’OAS high yield és la prima que demanen els inversors per assumir risc d’impagament; si s’obre, el finançament es torna més car.'
+  });
+
+  const gprValue = value('gpr');
+  const gprChange = byKey.gpr?.change ?? null;
+  const gprLevel = gprValue === null && gprChange === null ? 'unknown' : levelFor(
+    (gprValue !== null && gprValue >= 250) || (gprChange !== null && gprChange >= 60) ? 2 :
+      ((gprValue !== null && gprValue >= 150) || (gprChange !== null && gprChange >= 25)) ? 1 : 0
+  );
+  const geopolitical = component('gpr', 'Risc geopolític', gprLevel, {
+    value: gprValue,
+    unit: 'índex',
+    change: gprChange,
+    date: date('gpr'),
+    explanation: 'Compta la intensitat de notícies sobre risc geopolític; no calcula la probabilitat d’una guerra ni el seu impacte borsari.'
+  });
+
+  const components = [vix, price, credit, geopolitical];
+  const availableComponents = components.filter(item => item.level !== 'unknown');
+  const rawScore = availableComponents.reduce((sum, item) => sum + (item.level === 'alert' ? 2 : item.level === 'watch' ? 1 : 0), 0);
+  const sufficient = availableComponents.length >= 3;
+  const score = sufficient ? rawScore : null;
+  const level = !sufficient ? 'unknown' : score >= 6 ? 'alert' : score >= 1 ? 'watch' : 'ok';
+  const label = !sufficient ? 'Sense dades suficients' : score >= 6 ? 'Tensió' : score >= 4 ? 'Prudent' : score >= 1 ? 'Mixt' : 'Constructiu';
+  const stressed = availableComponents.filter(item => item.level !== 'ok').map(item => item.label.toLowerCase());
+  const reason = !sufficient
+    ? 'Calen almenys tres dels quatre components per formar una lectura; l’absència de dades no es considera una situació normal.'
+    : stressed.length
+      ? `El sentiment és ${label.toLowerCase()} perquè ${stressed.join(', ')} ${stressed.length === 1 ? 'mostra' : 'mostren'} senyals de prudència.`
+      : 'Els quatre components no mostren una pressió conjunta destacable en les darreres observacions disponibles.';
+
+  return {
+    key: 'marketSentiment',
+    label,
+    level,
+    score,
+    maxScore: sufficient ? availableComponents.length * 2 : null,
+    availableComponents: availableComponents.length,
+    totalComponents: components.length,
+    reason,
+    methodology: 'Índex propi del dashboard: VIX, tendència S&P 500/Nasdaq, OAS high yield i GPR. No és un índex oficial ni una predicció estadística.',
+    latestDate: components.map(item => item.date).filter(Boolean).sort().pop() || null,
+    components
   };
 }
 
@@ -287,8 +399,17 @@ function assess(series) {
 
 async function loadMacro({ force = false } = {}) {
   if (!force && cache.payload && Date.now() - cache.fetchedAt < CACHE_MS) return cache.payload;
+  const retrieval = {};
   const entries = await limitedMap(Object.entries(SERIES), 5, async ([key, meta]) => {
-    try { return [key, key === 'gpr' ? await downloadGpr() : await download(meta.id)]; }
+    try {
+      if (key === 'gpr') {
+        retrieval[key] = 'Caldara–Iacoviello';
+        return [key, await downloadGpr()];
+      }
+      const result = await download(meta.id);
+      retrieval[key] = result.via;
+      return [key, result.values];
+    }
     catch (error) { return [key, { error: error.message }]; }
   });
   const raw = Object.fromEntries(entries);
@@ -303,10 +424,11 @@ async function loadMacro({ force = false } = {}) {
   const errors = Object.entries(raw).filter(([, values]) => !Array.isArray(values)).map(([key, values]) => ({ key, error: values.error }));
   if (!series.length) throw new Error('FRED no ha retornat cap sèrie. Comprova la connexió del servidor.');
   const assessment = assess(series);
-  const payload = { fetchedAt: new Date().toISOString(), series, assessment, errors,
+  assessment.marketSentiment = buildMarketSentiment(series);
+  const payload = { fetchedAt: new Date().toISOString(), series, assessment, errors, retrieval,
     sources: [...new Set(series.map(x => ({ name: x.source, url: x.url })).map(x => JSON.stringify(x)))].map(x => JSON.parse(x)) };
   cache = { fetchedAt: Date.now(), payload };
   return payload;
 }
 
-module.exports = { loadMacro, SERIES };
+module.exports = { loadMacro, SERIES, buildMarketSentiment };
