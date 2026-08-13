@@ -697,7 +697,8 @@ function preparaContextMacro(macro) {
   const series = Object.fromEntries(macro.series.map(item => [item.key, item]));
   const fmt = value => Number.isFinite(Number(value)) ? Math.round(Number(value) * 100) / 100 : null;
   const blocks = Object.entries(macro.assessment?.blocks || {}).map(([key, assessment]) => ({
-    key, label: labels[key] || key, level: assessment.level, reason: assessment.reason
+    key, label: labels[key] || key, level: assessment.level, reason: assessment.reason,
+    outlook: macro.assessment?.outlook?.[key] || null
   }));
   const metrics = ['nfci', 'nfciCredit', 'hyOas', 'curve', 'claims', 'freight', 'starts', 'sentiment', 'revolving', 'delinq', 'sofr', 'effr', 'liquidityNet', 'walcl', 'wtregen', 'rrpontsyd', 'wresbal', 'profits', 'sp500', 'nasdaq', 'vix', 'gpr']
     .map(key => {
@@ -716,6 +717,7 @@ function preparaContextMacro(macro) {
     alertCount: blocks.filter(item => item.level === 'alert').length,
     watchCount: blocks.filter(item => item.level === 'watch').length,
     blocks,
+    outlook: macro.assessment?.outlook || {},
     metrics,
     marketSentiment,
     sources: macro.sources || []
@@ -860,6 +862,7 @@ async function generaConsellMercats() {
     '- Utilitza també portfolioSensitivity: és el mapa de sensibilitat qualitativa de la pestanya Risc macro combinat amb el valor real de cada posició; no el confonguis amb una probabilitat de pèrdua.',
     '- marketSentiment és un resum derivat de VIX, tendència S&P 500/Nasdaq, crèdit high yield i GPR. No el comptis com un bloc macro addicional ni el sumis dues vegades als blocs market, credit o geopolitical.',
     '- Explica si marketSentiment confirma o contradiu els blocs de crèdit, liquiditat, activitat i mercat. Si és unknown o té menys de tres components disponibles, indica que no hi ha dades suficients i no el tractis com a normal.',
+    '- Cada bloc inclou outlook de curt termini (1–3 mesos) i mitjà termini (3–6 mesos), basat en canvis de 3 i 6 mesos. Presenta-ho com una tendència/escenari amb confiança, evidència i senyals de confirmació; no ho descriguis com una predicció certa ni com una ordre de moure fons.',
     '- El GPR és un índex de notícies de risc geopolític, no una probabilitat de guerra; el VIX és volatilitat implícita de borsa. No els confonguis.',
     '- Cita la data de les observacions macro quan les utilitzis. Si el context macro no està disponible, digues-ho clarament i no inventis valors.',
     '',

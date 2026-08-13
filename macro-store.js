@@ -205,11 +205,16 @@ function makeSeries(key, values) {
   const data = observations(values);
   const current = last(data);
   const previous = current ? atOrBefore(data, dateDaysAgo(current.date, meta.freq === 'diària' ? 30 : meta.freq === 'setmanal' ? 91 : 90)) : null;
+  const threeMonthsAgo = current ? atOrBefore(data, dateDaysAgo(current.date, 91)) : null;
+  const sixMonthsAgo = current ? atOrBefore(data, dateDaysAgo(current.date, 182)) : null;
   const yearAgo = current ? atOrBefore(data, dateDaysAgo(current.date, 365)) : null;
   return {
     key, id: meta.id, label: meta.label, unit: meta.unit, frequency: meta.freq,
     source: meta.source, url: meta.url, current, change: delta(current, previous),
-    changePct: changePct(current, previous), change13w: delta(current, current ? atOrBefore(data, dateDaysAgo(current.date, 91)) : null),
+    changePct: changePct(current, previous),
+    change3m: delta(current, threeMonthsAgo), change3mPct: changePct(current, threeMonthsAgo),
+    change6m: delta(current, sixMonthsAgo), change6mPct: changePct(current, sixMonthsAgo),
+    change13w: delta(current, threeMonthsAgo),
     yearChange: delta(current, yearAgo),
     observations: data.slice(-80),
     latestRaw: current?.raw ?? null
@@ -397,6 +402,137 @@ function assess(series) {
   };
 }
 
+function trendSignal(item, horizon, threshold, badWhen = 'up', usePct = false) {
+  const field = horizon === '6m' ? (usePct ? 'change6mPct' : 'change6m') : (usePct ? 'change3mPct' : 'change3m');
+  const value = item?.[field];
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return null;
+  const magnitude = Math.abs(Number(value));
+  if (magnitude < threshold) return 0;
+  const bad = badWhen === 'up' ? Number(value) > 0 : Number(value) < 0;
+  return bad ? (magnitude >= threshold * 2 ? 2 : 1) : -1;
+}
+
+function seriesEvidence(key, item) {
+  if (!item?.current) return null;
+  const formatter = value => value === null || value === undefined || !Number.isFinite(Number(value))
+    ? 'n/d'
+    : `${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(2)}`;
+  const suffix = item.unit === '%' ? ' pp' : item.unit === 'punts percentuals' ? ' pp' : '';
+  return {
+    key,
+    label: item.label,
+    current: item.current.value,
+    date: item.current.date,
+    threeMonths: `${formatter(item.change3m)}${suffix}`,
+    sixMonths: `${formatter(item.change6m)}${suffix}`
+  };
+}
+
+function outlookState(score) {
+  if (score >= 2) return { direction: 'negative', label: 'Deteriorament probable' };
+  if (score >= 1) return { direction: 'caution', label: 'Vigilància' };
+  if (score <= -1) return { direction: 'supportive', label: 'Millora / suport' };
+  return { direction: 'stable', label: 'Estable o mixt' };
+}
+
+function outlookSentence(state, subject, horizon) {
+  const prefix = horizon === 'short' ? 'Curt termini (1–3 mesos)' : 'Mitjà termini (3–6 mesos)';
+  if (state.direction === 'negative') return `${prefix}: la pressió sobre ${subject} pot persistir o intensificar-se si no apareix una reversió clara.`;
+  if (state.direction === 'caution') return `${prefix}: hi ha una tendència que requereix confirmació; encara no és un escenari prou sòlid per actuar per si sol.`;
+  if (state.direction === 'supportive') return `${prefix}: ${subject} mostra una millora recent que podria donar suport als actius de risc si es manté.`;
+  return `${prefix}: els senyals de ${subject} són estables o contradictoris; no hi ha una direcció prou clara.`;
+}
+
+function makeOutlook({ subject, score3m, score6m, available3m, available6m, evidence, watch }) {
+  const available = Math.max(available3m, available6m);
+  if (!available) {
+    return {
+      direction: 'unknown', label: 'Sense dades suficients', confidence: 'baixa',
+      shortTerm: 'Curt termini (1–3 mesos): no es pot estimar la tendència amb les observacions disponibles.',
+      mediumTerm: 'Mitjà termini (3–6 mesos): no es pot estimar la tendència amb les observacions disponibles.',
+      evidence: evidence.filter(Boolean), watch
+    };
+  }
+  const shortState = outlookState(score3m);
+  const mediumState = outlookState(score6m);
+  const confidence = available >= 3 ? 'alta' : available >= 2 ? 'mitjana' : 'baixa';
+  return {
+    direction: shortState.direction === 'negative' || mediumState.direction === 'negative' ? 'negative'
+      : shortState.direction === 'caution' || mediumState.direction === 'caution' ? 'caution'
+        : shortState.direction === 'supportive' && mediumState.direction === 'supportive' ? 'supportive' : 'stable',
+    label: shortState.label === mediumState.label ? shortState.label : 'Mixt entre horitzons',
+    confidence,
+    shortTerm: outlookSentence(shortState, subject, 'short'),
+    mediumTerm: outlookSentence(mediumState, subject, 'medium'),
+    shortLabel: shortState.label,
+    mediumLabel: mediumState.label,
+    evidence: evidence.filter(Boolean),
+    watch
+  };
+}
+
+function buildMacroOutlook(series, blocks, marketSentiment) {
+  const s = Object.fromEntries(series.map(item => [item.key, item]));
+  const item = key => s[key];
+  const base = key => blocks[key]?.level === 'alert' ? 1 : blocks[key]?.level === 'watch' ? 0.5 : 0;
+  const make = (key, subject, signals, watch) => {
+    const usable = signals.filter(signal => signal !== null);
+    const score3m = base(key) + usable.reduce((sum, signal) => sum + (signal?.threeMonths || 0), 0);
+    const score6m = base(key) + usable.reduce((sum, signal) => sum + (signal?.sixMonths || 0), 0);
+    return [key, makeOutlook({
+      subject, score3m, score6m,
+      available3m: signals.filter(signal => signal?.threeMonths !== null && signal?.threeMonths !== undefined).length,
+      available6m: signals.filter(signal => signal?.sixMonths !== null && signal?.sixMonths !== undefined).length,
+      evidence: signals.flatMap(signal => signal?.evidence || []), watch
+    })];
+  };
+  const signal = (key, threshold, badWhen, usePct = false) => {
+    const data = item(key);
+    return data ? {
+      threeMonths: trendSignal(data, '3m', threshold, badWhen, usePct),
+      sixMonths: trendSignal(data, '6m', threshold, badWhen, usePct),
+      evidence: [seriesEvidence(key, data)]
+    } : null;
+  };
+
+  const spreadNow = item('sofr')?.current && item('effr')?.current ? item('sofr').current.value - item('effr').current.value : null;
+  const spread = spreadNow === null ? null : {
+    current: { value: spreadNow, date: [item('sofr').current.date, item('effr').current.date].sort().pop() },
+    change3m: (item('sofr').change3m || 0) - (item('effr').change3m || 0),
+    change6m: (item('sofr').change6m || 0) - (item('effr').change6m || 0),
+    unit: 'punts percentuals', label: 'Diferencial SOFR−EFFR'
+  };
+  const spreadSignal = spread ? {
+    threeMonths: trendSignal(spread, '3m', 0.05, 'up'), sixMonths: trendSignal(spread, '6m', 0.05, 'up'), evidence: [seriesEvidence('sofrEffr', spread)]
+  } : null;
+
+  const outlookEntries = [
+    make('credit', 'spreads i l’accés al crèdit', [signal('hyOas', 0.25, 'up'), signal('nfciCredit', 0.12, 'up')], 'Vigila si l’OAS high yield i el NFCI crèdit s’obren durant diverses observacions.'),
+    make('financial', 'condicions de finançament', [signal('nfci', 0.10, 'up')], 'Vigila una pujada del NFCI cap a zero o per sobre, especialment si coincideix amb crèdit més car.'),
+    make('curve', 'senyal de la corba de tipus', [signal('curve', 0.25, 'up')], 'Vigila si el re-steepening coincideix amb pitjor ocupació, activitat o crèdit.'),
+    make('earnings', 'beneficis corporatius', [signal('profits', 3, 'down', true)], 'Vigila una caiguda de beneficis que es mantingui en la següent dada trimestral.'),
+    make('activity', 'activitat i logística', [signal('claims', 5, 'up', true), signal('freight', 3, 'down', true), signal('starts', 6, 'down', true), signal('sentiment', 3, 'down', false)], 'Vigila confirmació conjunta entre transport, habitatge, atur i confiança.'),
+    make('consumerStress', 'estrès del consumidor', [signal('revolving', 3, 'up', true), signal('delinq', 0.10, 'up')], 'Vigila que el revolving i la morositat pugin alhora; un sol dels dos no és suficient.'),
+    make('interbank', 'liquiditat overnight', [spreadSignal], 'Vigila un salt persistent del diferencial SOFR−EFFR, no només una dada d’un dia.'),
+    make('liquidity', 'liquiditat disponible als mercats', [signal('liquidityNet', 100, 'down')], 'Vigila una contracció de liquiditat neta que coincideixi amb spreads o VIX més alts.'),
+    make('market', 'confirmació de la borsa', [signal('sp500', 3, 'down', true), signal('nasdaq', 3, 'down', true), signal('vix', 3, 'up', true)], 'Vigila una borsa feble amb VIX creixent i pèrdua de lideratge del Nasdaq.'),
+    make('geopolitical', 'prima de risc geopolític', [signal('gpr', 25, 'up')], 'Vigila si el GPR continua pujant i es trasllada a VIX, crèdit, energia o logística.')
+  ];
+
+  const sentimentSignals = [signal('vix', 3, 'up', true), signal('sp500', 3, 'down', true), signal('hyOas', 0.25, 'up'), signal('gpr', 25, 'up')].filter(Boolean);
+  const sentimentBase = marketSentiment?.level === 'alert' ? 1 : marketSentiment?.level === 'watch' ? 0.5 : 0;
+  const sentiment3m = sentimentBase + sentimentSignals.reduce((sum, signal) => sum + (signal.threeMonths || 0), 0);
+  const sentiment6m = sentimentBase + sentimentSignals.reduce((sum, signal) => sum + (signal.sixMonths || 0), 0);
+  outlookEntries.push(['marketSentiment', makeOutlook({
+    subject: 'sentiment agregat de mercat', score3m: sentiment3m, score6m: sentiment6m,
+    available3m: sentimentSignals.filter(signal => signal.threeMonths !== null && signal.threeMonths !== undefined).length,
+    available6m: sentimentSignals.filter(signal => signal.sixMonths !== null && signal.sixMonths !== undefined).length,
+    evidence: sentimentSignals.flatMap(signal => signal.evidence || []),
+    watch: 'Vigila si la prudència del GPR es converteix també en VIX alt, spreads més amplis i borsa feble.'
+  })]);
+  return Object.fromEntries(outlookEntries);
+}
+
 async function loadMacro({ force = false } = {}) {
   if (!force && cache.payload && Date.now() - cache.fetchedAt < CACHE_MS) return cache.payload;
   const retrieval = {};
@@ -425,10 +561,12 @@ async function loadMacro({ force = false } = {}) {
   if (!series.length) throw new Error('FRED no ha retornat cap sèrie. Comprova la connexió del servidor.');
   const assessment = assess(series);
   assessment.marketSentiment = buildMarketSentiment(series);
+  assessment.outlook = buildMacroOutlook(series, assessment.blocks, assessment.marketSentiment);
+  assessment.marketSentiment.outlook = assessment.outlook.marketSentiment;
   const payload = { fetchedAt: new Date().toISOString(), series, assessment, errors, retrieval,
     sources: [...new Set(series.map(x => ({ name: x.source, url: x.url })).map(x => JSON.stringify(x)))].map(x => JSON.parse(x)) };
   cache = { fetchedAt: Date.now(), payload };
   return payload;
 }
 
-module.exports = { loadMacro, SERIES, buildMarketSentiment };
+module.exports = { loadMacro, SERIES, buildMarketSentiment, buildMacroOutlook };
