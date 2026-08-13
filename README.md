@@ -196,6 +196,7 @@ No cal tocar cap línia de codi: Ollama exposa una API compatible. Quan arrenqui
 | `POST /api/update-prices` | Força una nova lectura de Google Sheets |
 | `POST /api/chat` | Rep `{ messages, estat }` i retorna la resposta d'OpenAI en streaming SSE |
 | `POST /api/advice` | Genera sota demanda un informe estructurat de mercats amb fonts web actuals |
+| `GET /api/macro` | Retorna les sèries macro públiques, el marcador i el sentiment derivat |
 | `GET /api/portfolio` | Retorna la cartera combinada amb els darrers preus |
 
 ## Avisos

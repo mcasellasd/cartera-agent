@@ -132,8 +132,10 @@ function dateDaysAgo(date, days) {
 
 async function download(id) {
   let fredError;
-  const attempts = process.env.VERCEL ? 1 : 2;
-  const timeoutMs = process.env.VERCEL ? 3500 : 10000;
+  // Les funcions serverless poden trigar més en la primera connexió TLS a FRED.
+  // 3,5 s provocava falsos buits: la font respon, però després del timeout.
+  const attempts = 2;
+  const timeoutMs = process.env.VERCEL ? 10000 : 10000;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       const response = await fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(id)}`, {
