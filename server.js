@@ -148,8 +148,12 @@ app.post('/api/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-// La interfície és estàtica, però totes les dades i accions de l'API queden protegides.
-app.use('/api', requireAuth);
+// La interfície és estàtica. Les dades de cartera i les accions queden protegides;
+// el marcador macro només conté sèries públiques i es pot consultar sense sessió.
+app.use('/api', (req, res, next) => {
+  if (req.path === '/macro') return next();
+  return requireAuth(req, res, next);
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------------------------------------------------------------------------

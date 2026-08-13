@@ -69,6 +69,19 @@ function finite(valueToCheck) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function weeklyChange(currentValue, referenceValue, reportedPct) {
+  const current = finite(currentValue);
+  const reference = finite(referenceValue);
+  const reported = finite(reportedPct);
+  const changeValue = current !== null && reference !== null ? current - reference : null;
+  const changePct = reported !== null
+    ? reported * 100
+    : changeValue !== null && reference !== 0
+      ? (changeValue / reference) * 100
+      : null;
+  return { changeValue, changePct };
+}
+
 function money(valueToCheck) {
   if (typeof valueToCheck === 'number') return finite(valueToCheck);
   const normalized = String(valueToCheck || '').replace(/[€\s]/g, '').replace(/\./g, '').replace(',', '.');
@@ -188,7 +201,9 @@ function fundPosition(row) {
   if (!asset) throw new Error(`Fons desconegut a la fulla: "${isin}"`);
 
   const monthReferenceValue = finite(value(row, 8));
-  const currentValue = finite(value(row, 9));
+  const currentValue = finite(value(row, 10)) ?? finite(value(row, 9));
+  const weeklyReferenceValue = finite(value(row, 11));
+  const weekly = weeklyChange(currentValue, weeklyReferenceValue, value(row, 12));
 
   return {
     ticker: asset.ticker,
@@ -200,7 +215,7 @@ function fundPosition(row) {
     costPrice: finite(value(row, 4)),
     price: finite(value(row, 5)),
     costTotal: finite(value(row, 6)),
-    valueTotal: finite(value(row, 9)),
+    valueTotal: currentValue,
     monthChangePct: monthReferenceValue !== null && currentValue !== null
       ? (currentValue / monthReferenceValue - 1) * 100
       : null,
@@ -208,8 +223,8 @@ function fundPosition(row) {
       ? currentValue - monthReferenceValue
       : null,
     monthPeriodLabel: 'Mes fins avui',
-    periodChangePct: finite(value(row, 11)) === null ? null : finite(value(row, 11)) * 100,
-    periodChangeValue: finite(value(row, 12)),
+    periodChangePct: weekly.changePct,
+    periodChangeValue: weekly.changeValue,
     periodLabel: 'Setmana',
     periodApproximate: false,
     cur: '€'
@@ -224,6 +239,9 @@ function fixedIncomePosition(row) {
   const asset = FUNDS[isin];
   if (!asset || asset.cat !== 'Renda fixa') throw new Error(`Fons de renda fixa desconegut a la fulla: "${isin}"`);
 
+  const currentValue = finite(value(row, 11)) ?? finite(value(row, 10));
+  const weekly = weeklyChange(currentValue, value(row, 12), value(row, 13));
+
   return {
     ticker: asset.ticker,
     name: originalName,
@@ -234,9 +252,9 @@ function fixedIncomePosition(row) {
     costPrice: finite(value(row, 4)),
     costTotal: finite(value(row, 5)),
     price: finite(value(row, 6)),
-    valueTotal: finite(value(row, 10)),
-    periodChangePct: finite(value(row, 12)) === null ? null : finite(value(row, 12)) * 100,
-    periodChangeValue: finite(value(row, 13)),
+    valueTotal: currentValue,
+    periodChangePct: weekly.changePct,
+    periodChangeValue: weekly.changeValue,
     periodLabel: 'Setmana',
     periodApproximate: false,
     cur: '€'
@@ -342,5 +360,8 @@ async function loadSheetPortfolio({ force = false } = {}) {
 
 module.exports = {
   SHEET_ID,
-  loadSheetPortfolio
+  loadSheetPortfolio,
+  brokerPosition,
+  fundPosition,
+  fixedIncomePosition
 };
