@@ -562,49 +562,65 @@ function buildMacroOutlook(series, blocks, marketSentiment) {
 
 async function loadMacro({ force = false } = {}) {
   if (!force && cache.payload && Date.now() - cache.fetchedAt < CACHE_MS) return cache.payload;
-  // Les funcions de Vercel tenen una ruta de sortida diferent cap a FRED que
-  // l'entorn local. Servim una captura real generada localment si existeix,
-  // en lloc d'inventar n/d o fer esperar el navegador fins al timeout.
+  // En una petició normal a Vercel servim la captura empaquetada per donar una
+  // resposta ràpida. Una petició explícita de refresc, però, ha d'intentar
+  // descarregar les fonts actuals; abans aquest retorn incondicional feia que
+  // el botó «Actualitza dades» no pogués actualitzar mai res.
   const bundled = readBundledMacro();
-  if (process.env.VERCEL && bundled) {
+  if (process.env.VERCEL && bundled && !force) {
     return {
       ...bundled,
       servedFromCache: true,
       cacheNotice: 'Captura real empaquetada; actualitzada quan es publica una nova versió del dashboard.'
     };
   }
-  const retrieval = {};
-  const entries = await limitedMap(Object.entries(SERIES), 5, async ([key, meta]) => {
-    try {
-      if (key === 'gpr') {
-        retrieval[key] = 'Caldara–Iacoviello';
-        return [key, await downloadGpr()];
+  try {
+    const retrieval = {};
+    const entries = await limitedMap(Object.entries(SERIES), 5, async ([key, meta]) => {
+      try {
+        if (key === 'gpr') {
+          retrieval[key] = 'Caldara–Iacoviello';
+          return [key, await downloadGpr()];
+        }
+        const result = await download(meta.id);
+        retrieval[key] = result.via;
+        return [key, result.values];
       }
-      const result = await download(meta.id);
-      retrieval[key] = result.via;
-      return [key, result.values];
+      catch (error) { return [key, { error: error.message }]; }
+    });
+    const raw = Object.fromEntries(entries);
+    const liquidityNet = buildLiquidityNet(raw);
+    const series = Object.entries(raw).filter(([, values]) => Array.isArray(values)).map(([key, values]) => makeSeries(key, values));
+    if (liquidityNet) series.push({
+      ...makeSeries('walcl', liquidityNet), key: 'liquidityNet', id: 'WALCL−WTREGEN−RRPONTSYD',
+      label: 'Liquiditat neta EUA', unit: 'milions de $', frequency: 'setmanal',
+      source: 'Càlcul propi amb sèries Fed via FRED',
+      url: 'https://fred.stlouisfed.org/series/WALCL', observations: liquidityNet.slice(-80)
+    });
+    const errors = Object.entries(raw).filter(([, values]) => !Array.isArray(values)).map(([key, values]) => ({ key, error: values.error }));
+    if (!series.length) throw new Error('FRED no ha retornat cap sèrie. Comprova la connexió del servidor.');
+    const assessment = assess(series);
+    assessment.marketSentiment = buildMarketSentiment(series);
+    assessment.outlook = buildMacroOutlook(series, assessment.blocks, assessment.marketSentiment);
+    assessment.marketSentiment.outlook = assessment.outlook.marketSentiment;
+    const payload = { fetchedAt: new Date().toISOString(), series, assessment, errors, retrieval,
+      sources: [...new Set(series.map(x => ({ name: x.source, url: x.url })).map(x => JSON.stringify(x)))].map(x => JSON.parse(x)) };
+    cache = { fetchedAt: Date.now(), payload };
+    return payload;
+  } catch (error) {
+    // Si les fonts fallen durant un refresc a Vercel, mantén la darrera captura
+    // visible i informa del motiu; no presentis una falsa actualització.
+    if (process.env.VERCEL && bundled) {
+      return {
+        ...bundled,
+        servedFromCache: true,
+        refreshAttemptedAt: new Date().toISOString(),
+        refreshError: error.message,
+        cacheNotice: 'No s’ha pogut completar el refresc; es mostra la darrera captura publicada.'
+      };
     }
-    catch (error) { return [key, { error: error.message }]; }
-  });
-  const raw = Object.fromEntries(entries);
-  const liquidityNet = buildLiquidityNet(raw);
-  const series = Object.entries(raw).filter(([, values]) => Array.isArray(values)).map(([key, values]) => makeSeries(key, values));
-  if (liquidityNet) series.push({
-    ...makeSeries('walcl', liquidityNet), key: 'liquidityNet', id: 'WALCL−WTREGEN−RRPONTSYD',
-    label: 'Liquiditat neta EUA', unit: 'milions de $', frequency: 'setmanal',
-    source: 'Càlcul propi amb sèries Fed via FRED',
-    url: 'https://fred.stlouisfed.org/series/WALCL', observations: liquidityNet.slice(-80)
-  });
-  const errors = Object.entries(raw).filter(([, values]) => !Array.isArray(values)).map(([key, values]) => ({ key, error: values.error }));
-  if (!series.length) throw new Error('FRED no ha retornat cap sèrie. Comprova la connexió del servidor.');
-  const assessment = assess(series);
-  assessment.marketSentiment = buildMarketSentiment(series);
-  assessment.outlook = buildMacroOutlook(series, assessment.blocks, assessment.marketSentiment);
-  assessment.marketSentiment.outlook = assessment.outlook.marketSentiment;
-  const payload = { fetchedAt: new Date().toISOString(), series, assessment, errors, retrieval,
-    sources: [...new Set(series.map(x => ({ name: x.source, url: x.url })).map(x => JSON.stringify(x)))].map(x => JSON.parse(x)) };
-  cache = { fetchedAt: Date.now(), payload };
-  return payload;
+    throw error;
+  }
 }
 
 module.exports = { loadMacro, SERIES, buildMarketSentiment, buildMacroOutlook, makeSeries, yearOverYear };
