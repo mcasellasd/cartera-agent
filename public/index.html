@@ -64,6 +64,15 @@ tbody tr.main:hover,tbody tr.main.open{background:var(--panel2)}
 .rangebar i{position:absolute;top:-3px;width:3px;height:11px;background:var(--acc);border-radius:2px}
 .detail td{background:#f6f8fa;color:var(--dim);font-size:12.5px;text-align:left;white-space:normal;line-height:1.65;padding:14px 12px}
 .detail b{color:var(--txt)}
+.technical-monitor{margin-top:2px}
+.technical-monitor .subline{color:var(--dim);font-size:12px;margin:-7px 0 13px;line-height:1.5}
+.technical-monitor table th,.technical-monitor table td{padding:9px 8px}
+.technical-monitor table th:first-child,.technical-monitor table td:first-child{min-width:125px}
+.technical-monitor .signal{display:inline-block;border-radius:5px;padding:3px 7px;font-size:11px;font-weight:650}
+.technical-monitor .signal.positive{background:#dafbe1;color:#117f34}
+.technical-monitor .signal.neutral{background:#eaeef2;color:var(--dim)}
+.technical-monitor .signal.missing{color:var(--dim);font-weight:400}
+.technical-monitor .available{color:var(--bull)}
 .chartbox{height:520px;position:relative}
 .simgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px 18px;margin-bottom:18px}
 .simrow{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px}
@@ -411,15 +420,33 @@ body.chat-open #chat{transform:none}
 
 /* ---------- Vigilància macro ---------- */
 .macro-hero{display:grid;grid-template-columns:1.3fr .7fr;gap:14px;margin-bottom:14px}
+.macro-reading{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+.macro-reading h2{font-size:24px;letter-spacing:-.03em;margin:6px 0 5px}
+.macro-reading>p{color:var(--dim);font-size:12.5px;line-height:1.55;margin:0 0 15px}
+.macro-reading-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px}
+.macro-reading-column{background:var(--panel2);border-radius:9px;padding:10px 11px;min-width:0}
+.macro-reading-column>strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;color:var(--dim)}
+.macro-reading-column p{font-size:11.5px;line-height:1.5;margin:0}
+.macro-reading-map{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;border-top:1px solid var(--line);padding-top:11px}
+.macro-reading-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:baseline;font-size:10.5px;padding:3px 0}
+.macro-reading-row b{overflow-wrap:anywhere}
+.macro-reading-row span{font-size:9.5px;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.macro-reading-row small{grid-column:1/-1;color:var(--dim);font-size:9.5px;line-height:1.3;margin-top:-3px}
+.macro-reading-meta{color:var(--dim);font-size:10.5px;line-height:1.45;margin-top:11px}
+.macro-reading-meta strong{color:var(--txt)}
+.macro-reading-empty{color:var(--dim);font-size:12px;padding:10px 0}
 .macro-lead{background:#101827;color:#fff;border-radius:14px;padding:22px;position:relative;overflow:hidden}
 .macro-lead:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-70px;top:-95px;background:rgba(110,168,254,.16)}
 .macro-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#9db8da;font-weight:700}
 .macro-lead h2{color:#fff;text-transform:none;letter-spacing:-.03em;font-size:27px;margin:7px 0 8px;position:relative;z-index:1}
 .macro-lead p{color:#c2cedf;max-width:620px;margin:0;position:relative;z-index:1}
 .macro-score{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;justify-content:center}
-.macro-score .score-num{font-size:42px;font-weight:700;letter-spacing:-.05em;line-height:1}
+.macro-score-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:13px 0 14px}
+.macro-score-count{border-radius:8px;padding:9px 7px;background:var(--panel2);min-width:0}
+.macro-score-count strong{display:block;font-size:27px;line-height:1;font-weight:700;letter-spacing:-.04em}
+.macro-score-count span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin-top:6px;white-space:nowrap}
+.macro-score-count.alert{color:var(--bear)}.macro-score-count.watch{color:var(--base)}.macro-score-count.ok{color:var(--bull)}
 .macro-score .score-label{color:var(--dim);font-size:12px;margin-top:7px}
-.macro-meter{height:9px;background:var(--panel2);border-radius:10px;overflow:hidden;margin:16px 0 9px}.macro-meter i{display:block;height:100%;border-radius:10px;background:linear-gradient(90deg,#3fb984 0%,#e3b341 60%,#cf222e 100%);transition:width .25s}
 .macro-note{font-size:12px;color:var(--dim);line-height:1.55}
 .macro-section-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:650;margin:18px 0 10px}
 .macro-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
@@ -437,12 +464,14 @@ body.chat-open #chat{transform:none}
 .macro-method{background:#f6f8fa;border:1px solid var(--line);border-radius:9px;padding:11px 12px;margin-top:12px;color:var(--dim);font-size:11px;line-height:1.55}.macro-method b{color:var(--txt)}
 .macro-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}.macro-action{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel)}.macro-action h4{margin:0 0 5px;font-size:12px}.macro-action p{margin:0;color:var(--dim);font-size:11.5px;line-height:1.5}.macro-action.normal{border-top:3px solid var(--bull)}.macro-action.watch{border-top:3px solid var(--base)}.macro-action.alert{border-top:3px solid var(--bear)}
 .macro-real-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}.macro-real-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}.macro-real-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.macro-real-card h3{font-size:13px;margin:0;line-height:1.3}.macro-real-card .real-status{font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;white-space:nowrap}.real-status.ok{color:var(--bull)}.real-status.watch{color:var(--base)}.real-status.alert{color:var(--bear)}.real-status.unknown{color:var(--dim)}.macro-metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.macro-metric label{display:block;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.05em}.macro-metric strong{display:block;font-size:19px;letter-spacing:-.03em;margin-top:2px}.macro-metric small{display:block;color:var(--dim);font-size:10px;margin-top:2px}.macro-reason{color:var(--dim);font-size:11px;line-height:1.45;margin:13px 0 0;border-top:1px solid var(--line);padding-top:10px}.macro-reason b{color:var(--txt)}.macro-card-guide{border-top:1px solid var(--line);margin-top:11px;padding-top:9px}.macro-card-guide summary{cursor:pointer;color:var(--acc);font-size:11px;font-weight:700}.macro-card-guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.macro-card-guide-item{background:var(--panel2);border-radius:8px;padding:8px;font-size:10.5px;line-height:1.45;color:var(--dim)}.macro-card-guide-item b{display:block;color:var(--txt);font-size:10px;margin-bottom:2px}.macro-card-guide-item span{display:block}.macro-sentiment-card{border-top:3px solid var(--acc)}.macro-derived-label{display:block;color:var(--dim);font-size:10px;margin-top:3px}.macro-sentiment-score{display:flex;align-items:baseline;gap:9px;margin-top:13px}.macro-sentiment-score strong{font-size:24px;letter-spacing:-.04em;white-space:nowrap}.macro-sentiment-score span{color:var(--dim);font-size:11px;line-height:1.45}.macro-sentiment-components{display:grid;gap:6px;margin-top:12px}.macro-sentiment-component{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;background:var(--panel2);border-radius:8px;padding:8px;font-size:10.5px}.macro-sentiment-component b{display:block;color:var(--txt);font-size:10.5px}.macro-sentiment-component span{display:block;color:var(--dim);margin-top:2px}.macro-sentiment-component em{font-style:normal;font-size:9px}.macro-source-list{border-top:1px solid var(--line);margin-top:10px;padding-top:8px;color:var(--dim);font-size:10px;line-height:1.5}.macro-source-list a{color:var(--acc);text-decoration:none}.macro-source-list a:hover{text-decoration:underline}.macro-real-chart{height:330px;position:relative}.macro-real-card .source-link{display:block;color:var(--acc);font-size:10px;margin-top:10px;text-decoration:none}.macro-real-card .source-link:hover{text-decoration:underline}
+.macro-future-card{border-top:3px solid #8250df}.macro-future-score{display:flex;align-items:baseline;gap:9px;margin-top:13px}.macro-future-score strong{font-size:23px;letter-spacing:-.04em}.macro-future-score span{color:var(--dim);font-size:11px}.macro-future-signals{display:grid;gap:5px;margin-top:12px}.macro-future-signal{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:7px;background:var(--panel2);font-size:10.5px}.macro-future-signal span{color:var(--dim)}
 .macro-outlook{border:1px solid var(--line);border-left:3px solid var(--dim);border-radius:9px;background:var(--panel2);margin-top:11px;padding:9px 10px}.macro-outlook.outlook-negative{border-left-color:var(--bear)}.macro-outlook.outlook-caution{border-left-color:var(--base)}.macro-outlook.outlook-supportive{border-left-color:var(--bull)}.macro-outlook.outlook-stable{border-left-color:var(--dim)}.macro-outlook-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:10.5px}.macro-outlook-head b{color:var(--txt)}.macro-outlook-head span{color:var(--dim);text-align:right}.macro-outlook-horizons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.macro-outlook-horizons>div{background:var(--panel);border-radius:7px;padding:7px}.macro-outlook-horizons small{display:block;color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:.05em}.macro-outlook-horizons strong{display:block;color:var(--txt);font-size:10.5px;margin-top:2px}.macro-outlook-horizons p{color:var(--dim);font-size:10px;line-height:1.4;margin:4px 0 0}.macro-outlook-details{margin-top:8px}.macro-outlook-details summary{cursor:pointer;color:var(--acc);font-size:10px;font-weight:700}.macro-outlook-evidence-list{display:grid;gap:4px;margin-top:7px}.macro-outlook-evidence{display:flex;justify-content:space-between;gap:8px;font-size:9.5px;line-height:1.35}.macro-outlook-evidence b{color:var(--txt)}.macro-outlook-evidence span{color:var(--dim);text-align:right}.macro-outlook-details p{color:var(--dim);font-size:9.5px;line-height:1.4;margin:7px 0 0}.macro-outlook-details p b{color:var(--txt)}.macro-outlook-empty{color:var(--dim);font-size:9.5px}
 @media(max-width:1050px){.macro-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.macro-real-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.macro-guide-grid,.macro-glossary{grid-template-columns:1fr}}
 @media(max-width:700px){.macro-actions{grid-template-columns:1fr}}
 @media(max-width:700px){.macro-hero,.macro-two{grid-template-columns:1fr}.macro-grid,.macro-exposure{grid-template-columns:1fr 1fr}.macro-card{min-height:165px}}
+@media(max-width:700px){.macro-reading-grid,.macro-reading-map{grid-template-columns:1fr}}
 @media(max-width:470px){.macro-grid,.macro-exposure,.macro-real-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -526,6 +555,19 @@ body.chat-open #chat{transform:none}
       <h2>Perdedores diàries</h2>
       <div class="ranking-list" id="losers-list"></div>
     </div>
+  </div>
+</div>
+
+<div class="panel technical-monitor" id="technical-monitor">
+  <h2>Monitor dels ETF</h2>
+  <p class="subline">Vista inspirada en el monitor de TradingView. El dashboard conserva ara el preu i el rendiment anual; les mètriques que requereixen historial diari apareixen com a <b>N/D</b> fins que s’hi connecti aquesta sèrie.</p>
+  <div class="table-wrap">
+    <table id="tbl-etf-monitor">
+      <thead><tr>
+        <th>ETF</th><th>Preu</th><th>1M</th><th>3M</th><th>1A</th><th>RSI</th><th>Tendència</th><th>Estat</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
   </div>
 </div>
 
@@ -669,15 +711,24 @@ body.chat-open #chat{transform:none}
 
 <div id="tab-macro" role="tabpanel" aria-labelledby="tab-btn-macro" hidden>
   <div class="macro-hero">
-    <div class="macro-lead">
-      <div class="macro-kicker">Quadre de vigilància</div>
-      <h2>No busquis un senyal únic.</h2>
-      <p>Les crisis acostumen a aparèixer quan el crèdit, l’amplitud, els beneficis i l’activitat es deterioren alhora. Actualitza el marcador amb la teva lectura mensual.</p>
+    <div class="macro-reading">
+      <div class="macro-kicker">Lectura integrada</div>
+      <h2 id="macro-reading-title">Quina història expliquen les dades?</h2>
+      <p id="macro-reading-summary">Carregant la valoració qualitativa de les darreres observacions…</p>
+      <div class="macro-reading-grid">
+        <div class="macro-reading-column"><strong>Suports</strong><p id="macro-reading-support">—</p></div>
+        <div class="macro-reading-column"><strong>Tensions i confirmacions pendents</strong><p id="macro-reading-pressure">—</p></div>
+      </div>
+      <div class="macro-reading-map" id="macro-reading-map"></div>
+      <div class="macro-reading-meta" id="macro-reading-meta"></div>
     </div>
     <div class="macro-score">
       <div class="macro-kicker" style="color:var(--dim)">Senyal agregat</div>
-      <div class="score-num" id="macro-score">—/9</div>
-      <div class="macro-meter"><i id="macro-meter-fill" style="width:40%"></i></div>
+      <div class="macro-score-counts" aria-label="Repartiment dels blocs macro">
+        <div class="macro-score-count alert"><strong id="macro-alert-count">—</strong><span>Alertes</span></div>
+        <div class="macro-score-count watch"><strong id="macro-watch-count">—</strong><span>Vigilància</span></div>
+        <div class="macro-score-count ok"><strong id="macro-ok-count">—</strong><span>OK</span></div>
+      </div>
       <div class="score-label" id="macro-score-label">Esperant les dades oficials</div>
       <div class="macro-note">Regla orientativa: revisa l’exposició si 3 o més blocs es deterioren durant diverses setmanes o mesos.</div>
     </div>
@@ -1255,8 +1306,30 @@ function renderScenarioMethod(portfolio, visible, investedValue, totalValue){
     <p><b>Què no cobreix:</b> ${(meta.limitations||[]).map(esc).join(" ")}</p>`;
 }
 
+function renderTechnicalMonitor(){
+  const body=document.querySelector('#tbl-etf-monitor tbody');
+  if(!body) return;
+  const etfs=D.filter(position=>position.type==='ETF');
+  body.innerHTML=etfs.map(d=>{
+    const price=d.price==null ? '<span class="signal missing">N/D</span>' : `${esc(d.cur||'€')}${f(d.price,d.price>500?0:2)}`;
+    const annual=d.y1==null ? '<span class="signal missing">N/D</span>' : `<span class="${d.y1>=0?'pos':'neg'}">${d.y1>=0?'+':''}${d.y1.toFixed(1)}%</span>`;
+    const missing='<span class="signal missing">N/D</span>';
+    return `<tr>
+      <td><span class="tk">${esc(d.ticker)}</span><span class="nm"><br>${esc(d.name||'')}</span></td>
+      <td>${price}<span class="pct">${esc(d.date||'')}</span></td>
+      <td>${missing}</td>
+      <td>${missing}</td>
+      <td>${annual}</td>
+      <td>${missing}</td>
+      <td>${missing}</td>
+      <td>${missing}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="muted">No hi ha ETF visibles.</td></tr>';
+}
+
 function render(){
   const r=rows(), tbPos=document.querySelector("#tbl-pos tbody"), tbPrev=document.querySelector("#tbl-prev tbody");
+  renderTechnicalMonitor();
   tbPos.innerHTML="";
   tbPrev.innerHTML="";
   document.getElementById("ncount").textContent=r.length;
@@ -2372,6 +2445,31 @@ const MACRO_CONTEXT_CARDS=[
 let macroData=null, macroChart=null, macroLoading=false;
 const macroStatusLabel={ok:'Normal',watch:'Vigilància',alert:'Alerta',unknown:'Sense dades'};
 const macroContextStatusLabel={ok:'Context',watch:'Pressió',alert:'Alerta',unknown:'Sense dades'};
+const MACRO_READING_LABELS={credit:'Crèdit',financial:'Condicions financeres',curve:'Corba de tipus',inflation:'Inflació',rates:'Tipus d’interès',earnings:'Beneficis',activity:'Activitat i logística',consumerStress:'Consumidor',interbank:'Liquiditat overnight',liquidity:'Liquiditat neta',market:'Mercat i volatilitat',geopolitical:'Risc geopolític'};
+const MACRO_READING_KEYS=Object.keys(MACRO_READING_LABELS);
+function macroReadingStatus(key,blocks){return blocks[key]?.level||(['inflation','rates'].includes(key)?macroContextStatus(key):'unknown');}
+function renderMacroQualitativeSummary(){
+  const title=document.getElementById('macro-reading-title'), summary=document.getElementById('macro-reading-summary'), support=document.getElementById('macro-reading-support'), pressure=document.getElementById('macro-reading-pressure'), map=document.getElementById('macro-reading-map'), meta=document.getElementById('macro-reading-meta');
+  if(!title||!summary||!support||!pressure||!map||!meta) return;
+  if(!macroData){title.textContent='Quina història expliquen les dades?';summary.textContent='Selecciona «Risc macro» per carregar la valoració qualitativa de les darreres observacions.';support.textContent='—';pressure.textContent='—';map.innerHTML='';meta.textContent='';return;}
+  const assessment=macroData.assessment||{}, blocks=assessment.blocks||{}, outlook=assessment.outlook||{};
+  const entries=MACRO_READING_KEYS.map(key=>({key,label:MACRO_READING_LABELS[key],level:macroReadingStatus(key,blocks),outlook:outlook[key]}));
+  const alerts=entries.filter(item=>item.level==='alert'), watches=entries.filter(item=>item.level==='watch'), unknown=entries.filter(item=>item.level==='unknown');
+  const level=alerts.length>=3?'Tensió general':alerts.length||watches.length>=3?'Vigilància':'Entorn constructiu';
+  const currentConcerns=[...alerts,...watches].map(item=>item.label.toLowerCase());
+  title.textContent=level;
+  summary.textContent=currentConcerns.length
+    ? `La lectura conjunta és ${level.toLowerCase()}: ${currentConcerns.join(', ')} mereixen atenció, però el senyal encara no és una confirmació uniforme de crisi. El diagnòstic combina nivells actuals i tendències de curt i mitjà termini.`
+    : 'La lectura conjunta és constructiva: no hi ha una pressió actual generalitzada. Cal mantenir la vigilància perquè les dades tenen freqüències diferents i algunes poden arribar amb retard.';
+  const supports=entries.filter(item=>item.level==='ok').map(item=>item.label.toLowerCase());
+  const futureSupport=entries.filter(item=>['supportive'].includes(item.outlook?.direction)).map(item=>item.label.toLowerCase());
+  const futurePressure=entries.filter(item=>['negative','caution'].includes(item.outlook?.direction)).map(item=>item.label.toLowerCase());
+  support.textContent=supports.length?`${supports.join(', ')}.${futureSupport.length?` A més, la tendència dona suport en ${futureSupport.join(', ')}.`:''}`:'No hi ha cap suport clar amb les observacions disponibles.';
+  pressure.textContent=currentConcerns.length?`${currentConcerns.join(', ')}.${futurePressure.length?` La perspectiva afegeix pressió potencial en ${futurePressure.join(', ')}.`:''}${unknown.length?` Falta confirmar ${unknown.map(item=>item.label.toLowerCase()).join(', ')}.`:''}`:'La perspectiva no mostra una pressió conjunta clara; confirma que aquesta lectura es manté en les properes observacions.';
+  map.innerHTML=entries.map(item=>{const forecast=item.outlook?`${item.outlook.shortLabel||item.outlook.label||'Sense perspectiva'} · ${item.outlook.mediumLabel||'n/d'}`:'Sense perspectiva';return `<div class="macro-reading-row"><b>${item.label}</b><span class="real-status ${levelForClass(item.level)}">${macroStatusLabel[item.level]}</span><small>${esc(forecast)}</small></div>`;}).join('');
+  const total=(macroData.series||[]).length, available=(macroData.series||[]).filter(item=>item.current).length, errors=macroData.errors?.length||0;
+  meta.innerHTML=`<strong>${available}/${total}</strong> sèries integrades en ${entries.length} dimensions · ${unknown.length?`${unknown.length} dimensions sense prou dades`:'cobertura completa'}${errors?` · ${errors} incidències de descàrrega`:''}`;
+}
 function macroSeries(key){return macroData?.series?.find(x=>x.key===key)||null;}
 function macroNum(value,digits=2){return value===null||value===undefined||!Number.isFinite(Number(value))?'n/d':Number(value).toLocaleString('ca-ES',{minimumFractionDigits:digits,maximumFractionDigits:digits});}
 function macroMetricHtml(key,label){
@@ -2428,6 +2526,13 @@ function renderMarketSentimentCard(){
   const sources=sourceKeys.map(key=>macroSeries(key)).filter(Boolean).map(source=>`<a href="${source.url}" target="_blank" rel="noreferrer">${esc(source.source)} · sèrie ${esc(source.id)}</a>`).join(' · ');
   return `<article class="macro-real-card macro-sentiment-card"><div class="macro-real-head"><div><h3>Sentiments de mercat</h3><small class="macro-derived-label">Índex propi del dashboard · no oficial</small></div><span class="real-status ${level}">${esc(sentiment.label||macroStatusLabel[level])}</span></div><div class="macro-sentiment-score"><strong>${sentiment.score===null||sentiment.score===undefined?'n/d':`${sentiment.score}/${sentiment.maxScore}`}</strong><span>${esc(sentiment.reason)}</span></div><div class="macro-sentiment-components">${components}</div>${macroOutlookHtml(sentiment.outlook)}<details class="macro-card-guide"><summary>Què vol dir aquest índex?</summary><div class="macro-card-guide-grid"><div class="macro-card-guide-item"><b>Què combina</b><span>VIX, tendència de l’S&P 500 i Nasdaq, crèdit high yield i GPR geopolític.</span></div><div class="macro-card-guide-item"><b>Per què interessa</b><span>Resumeix si el mercat està confirmant o contradient el deteriorament dels altres blocs.</span></div><div class="macro-card-guide-item"><b>Com s’ha de llegir</b><span>Constructiu no vol dir segur i tensió no vol dir vendre. Cal mirar quins components han canviat i durant quant temps.</span></div><div class="macro-card-guide-item"><b>Limitació</b><span>És una regla de vigilància del dashboard i no compta com un bloc addicional del marcador 0/9.</span></div></div></details>${sources?`<div class="macro-source-list">${sources}</div>`:''}</article>`;
 }
+function renderSp500OutlookCard(){
+  const outlook=macroData?.assessment?.sp500Outlook;
+  if(!outlook||outlook.level==='unknown') return '<article class="macro-real-card macro-future-card"><div class="macro-real-head"><div><h3>Opcions de futur · S&amp;P 500</h3><small class="macro-derived-label">Indicador derivat · no és una predicció</small></div><span class="real-status unknown">Sense dades</span></div><p class="macro-reason">No hi ha prou dades de borsa, volatilitat o crèdit per construir una lectura prospectiva.</p></article>';
+  const status=outlook.level==='positive'?'ok':outlook.level==='negative'?'alert':'watch';
+  const signals=(outlook.signals||[]).map(item=>`<div class="macro-future-signal"><b>${esc(item.label)}</b><span>${item.direction==='positive'?'favorable':item.direction==='negative'?'desfavorable':'mixt'}</span></div>`).join('');
+  return `<article class="macro-real-card macro-future-card"><div class="macro-real-head"><div><h3>Opcions de futur · S&amp;P 500</h3><small class="macro-derived-label">Indicador derivat · no és una predicció</small></div><span class="real-status ${status}">${esc(outlook.label)}</span></div><div class="macro-future-score"><strong>${esc(outlook.shortLabel)}</strong><span>confiança ${esc(outlook.confidence||'baixa')}</span></div><div class="macro-future-signals">${signals}</div><p class="macro-reason"><b>Lectura:</b> ${esc(outlook.reason)}<br><br><b>Horitzó curt:</b> ${esc(outlook.horizons?.short?.label||'n/d')} · 1–3 mesos<br><b>Horitzó mitjà:</b> ${esc(outlook.horizons?.medium?.label||'n/d')} · 3–6 mesos</p><small class="macro-derived-label">Combina tendència de l’S&amp;P 500 i Nasdaq, VIX i spreads high yield. Serveix per orientar què cal vigilar, no per anticipar amb certesa el mercat.</small></article>`;
+}
 function renderMacroContextCard(card){
   const status=macroContextStatus(card.key), source=macroSeries(card.metrics[0][0]);
   const outlook=macroData?.assessment?.outlook?.[card.key];
@@ -2443,10 +2548,12 @@ function combinedMacroStatus(key){
 }
 function renderRealMacro(){
   const grid=document.getElementById('macro-real-grid'), statusEl=document.getElementById('macro-data-status'); if(!grid||!statusEl) return;
+  renderMacroQualitativeSummary();
   if(!macroData){grid.innerHTML='<div class="macro-real-card" style="grid-column:1/-1;color:var(--dim)">Selecciona «Risc macro» per descarregar les darreres observacions oficials.</div>';return;}
-  grid.innerHTML=renderMarketSentimentCard()+MACRO_CONTEXT_CARDS.map(renderMacroContextCard).join('')+MACRO_REAL_BLOCKS.map(block=>{const level=combinedMacroStatus(block.key), assessment=macroData.assessment.blocks[block.key]||macroData.assessment.blocks.credit, source=macroSeries(block.metrics[0][0]), outlook=macroData.assessment.outlook?.[block.key]; return `<article class="macro-real-card"><div class="macro-real-head"><h3>${block.title}</h3><span class="real-status ${level}">${macroStatusLabel[level]}</span></div><div class="macro-metrics">${block.metrics.map(([key,label])=>macroMetricHtml(key,label)).join('')}</div><p class="macro-reason"><b>Per què interessa:</b> ${esc(assessment.reason||block.reason)}</p>${macroOutlookHtml(outlook)}${macroInfoHtml(block)}${source?`<a class="source-link" href="${source.url}" target="_blank" rel="noreferrer">${source.source} · sèrie ${source.id}</a>`:''}</article>`;}).join('');
-  const core=['credit','curve','earnings','activity','consumerStress','interbank','liquidity','market','geopolitical'], statuses=core.map(combinedMacroStatus), alerts=statuses.filter(level=>level==='alert').length, watches=statuses.filter(level=>level==='watch').length, available=statuses.filter(level=>level!=='unknown').length;
-  document.getElementById('macro-score').textContent=available?`${alerts}/${available} alertes`:'—/9'; document.getElementById('macro-meter-fill').style.width=available?`${Math.min(100,(alerts+watches*.5)/available*100)}%`:'0%'; document.getElementById('macro-score-label').textContent=!available?'Sense dades suficients per calcular el marcador':alerts>=3?'Alerta: tres o més blocs mostren deteriorament':alerts>=1||watches>=3?'Vigilància: confirma si el deteriorament s’estén':'Normal: sense deteriorament agregat';
+  grid.innerHTML=renderSp500OutlookCard()+renderMarketSentimentCard()+MACRO_CONTEXT_CARDS.map(renderMacroContextCard).join('')+MACRO_REAL_BLOCKS.map(block=>{const level=combinedMacroStatus(block.key), assessment=macroData.assessment.blocks[block.key]||macroData.assessment.blocks.credit, source=macroSeries(block.metrics[0][0]), outlook=macroData.assessment.outlook?.[block.key]; return `<article class="macro-real-card"><div class="macro-real-head"><h3>${block.title}</h3><span class="real-status ${level}">${macroStatusLabel[level]}</span></div><div class="macro-metrics">${block.metrics.map(([key,label])=>macroMetricHtml(key,label)).join('')}</div><p class="macro-reason"><b>Per què interessa:</b> ${esc(assessment.reason||block.reason)}</p>${macroOutlookHtml(outlook)}${macroInfoHtml(block)}${source?`<a class="source-link" href="${source.url}" target="_blank" rel="noreferrer">${source.source} · sèrie ${source.id}</a>`:''}</article>`;}).join('');
+  const statuses=MACRO_READING_KEYS.map(key=>macroReadingStatus(key,macroData.assessment.blocks)), alerts=statuses.filter(level=>level==='alert').length, watches=statuses.filter(level=>level==='watch').length, oks=statuses.filter(level=>level==='ok').length, unavailable=statuses.filter(level=>level==='unknown').length, available=statuses.length-unavailable;
+  document.getElementById('macro-alert-count').textContent=alerts; document.getElementById('macro-watch-count').textContent=watches; document.getElementById('macro-ok-count').textContent=oks;
+  document.getElementById('macro-score-label').textContent=!available?'Sense dades suficients per calcular el marcador':`${available} blocs interpretables${unavailable?` · ${unavailable} sense dades`:''} · ${alerts>=3?'Alerta general':alerts>=1||watches>=3?'Vigilància activa':'Sense deteriorament agregat'}`;
   const latest=macroData.series.flatMap(s=>s.observations||[]).map(x=>x.date).sort().pop()||'', errors=macroData.errors?.length||0, loaded=macroData.series.filter(s=>s.current).length;
   const retrieval=Object.values(macroData.retrieval||{}); const mirrorUsed=retrieval.some(value=>String(value).includes('DBnomics'));
   const cached=Boolean(macroData.servedFromCache);
