@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { buildMarketSentiment, buildMacroOutlook, makeSeries } = require('./macro-store');
+const { buildMarketSentiment, buildMacroOutlook, buildSp500Outlook, makeSeries } = require('./macro-store');
 
 function series(key, value, change = 0, changePct = 0, date = '2026-08-10') {
   return { key, current: { value, date }, change, changePct, change3m: change, change6m: change, change3mPct: changePct, change6mPct: changePct, unit: key === 'hyOas' ? '%' : 'índex', label: key };
@@ -69,5 +69,15 @@ assert.equal(cpi.unit, '%');
 assert.ok(Math.abs(cpi.current.value - 3) < 0.01);
 assert.equal(cpi.current.raw, 103.2);
 assert.ok(cpi.observations.length > 0);
+
+const sp500Outlook = buildSp500Outlook([
+  {...series('sp500', 6400, 80, 1.3), change3mPct: 5.2, change6mPct: 8.1},
+  {...series('nasdaq', 21000, 400, 1.9), change3mPct: 6.4},
+  {...series('vix', 15.2, -1.1, -6.7), changePct: -12},
+  {...series('hyOas', 3.1, -0.08, -2.5), changePct: -8}
+]);
+assert.equal(sp500Outlook.level, 'positive');
+assert.equal(sp500Outlook.shortLabel, 'Continuïtat probable');
+assert.equal(sp500Outlook.available, 4);
 
 console.log('Market sentiment: OK');

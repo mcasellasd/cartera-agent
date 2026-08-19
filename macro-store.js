@@ -246,6 +246,59 @@ function makeSeries(key, values) {
   };
 }
 
+function buildSp500Outlook(series) {
+  const byKey = Object.fromEntries(series.map(item => [item.key, item]));
+  const sp = byKey.sp500;
+  const nasdaq = byKey.nasdaq;
+  const vix = byKey.vix;
+  const credit = byKey.hyOas;
+  const available = [sp, nasdaq, vix, credit].filter(item => item?.current).length;
+  if (!sp?.current || available < 2) {
+    return { level: 'unknown', label: 'Sense dades suficients', confidence: 'baixa', available };
+  }
+
+  const signals = [];
+  const add = (key, label, value, positiveAbove, negativeBelow) => {
+    if (!Number.isFinite(value)) return;
+    signals.push({ key, label, value, direction: value >= positiveAbove ? 'positive' : value <= negativeBelow ? 'negative' : 'neutral' });
+  };
+  add('sp500', 'S&P 500 · 3 mesos', sp.change3mPct, 2, -2);
+  add('sp500_6m', 'S&P 500 · 6 mesos', sp.change6mPct, 4, -4);
+  add('nasdaq', 'Nasdaq · 3 mesos', nasdaq?.change3mPct, 2, -2);
+  add('vix', 'VIX · canvi recent', Number.isFinite(vix?.changePct) ? -vix.changePct : null, 10, -10);
+  add('credit', 'High yield · canvi recent', Number.isFinite(credit?.changePct) ? -credit.changePct : null, 5, -5);
+
+  const score = signals.reduce((sum, signal) => sum + (signal.direction === 'positive' ? 1 : signal.direction === 'negative' ? -1 : 0), 0);
+  const threshold = Math.max(1, Math.ceil(signals.length / 4));
+  const level = score >= threshold ? 'positive' : score <= -threshold ? 'negative' : 'neutral';
+  const label = level === 'positive' ? 'Biaix alcista' : level === 'negative' ? 'Biaix baixista' : 'Lateral / mixt';
+  const shortLabel = level === 'positive' ? 'Continuïtat probable' : level === 'negative' ? 'Pressió probable' : 'Més incertesa';
+  const reason = level === 'positive'
+    ? 'La tendència de la borsa rep confirmació del Nasdaq i no veu una escalada clara de volatilitat o crèdit.'
+    : level === 'negative'
+      ? 'La debilitat de la borsa coincideix amb volatilitat o crèdit més tens; cal esperar confirmació abans d’interpretar-ho com a canvi de règim.'
+      : 'Els indicadors no expliquen una mateixa història; el senyal és de prudència i no permet inclinar-se amb confiança.';
+  return {
+    level, label, shortLabel, confidence: available >= 4 ? (Math.abs(score) >= 2 ? 'mitjana' : 'baixa') : 'baixa',
+    score, available, reason, date: sp.current.date,
+    horizons: {
+      short: { label: shortLabel, horizon: '1–3 mesos' },
+      medium: { label: level === 'positive' ? 'Constructiu amb riscos' : level === 'negative' ? 'Deteriorament a confirmar' : 'Sense direcció clara', horizon: '3–6 mesos' }
+    },
+    signals: signals.map(signal => ({ key: signal.key, label: signal.label, direction: signal.direction, value: signal.value }))
+  };
+}
+
+function attachDerivedAssessment(payload) {
+  return {
+    ...payload,
+    assessment: {
+      ...(payload.assessment || {}),
+      sp500Outlook: buildSp500Outlook(payload.series || [])
+    }
+  };
+}
+
 function buildMarketSentiment(series) {
   const byKey = Object.fromEntries(series.map(item => [item.key, item]));
   const current = key => byKey[key]?.current || null;
@@ -569,7 +622,7 @@ async function loadMacro({ force = false } = {}) {
   const bundled = readBundledMacro();
   if (process.env.VERCEL && bundled && !force) {
     return {
-      ...bundled,
+      ...attachDerivedAssessment(bundled),
       servedFromCache: true,
       cacheNotice: 'Captura real empaquetada; actualitzada quan es publica una nova versió del dashboard.'
     };
@@ -599,9 +652,10 @@ async function loadMacro({ force = false } = {}) {
     });
     const errors = Object.entries(raw).filter(([, values]) => !Array.isArray(values)).map(([key, values]) => ({ key, error: values.error }));
     if (!series.length) throw new Error('FRED no ha retornat cap sèrie. Comprova la connexió del servidor.');
-    const assessment = assess(series);
-    assessment.marketSentiment = buildMarketSentiment(series);
-    assessment.outlook = buildMacroOutlook(series, assessment.blocks, assessment.marketSentiment);
+  const assessment = assess(series);
+  assessment.marketSentiment = buildMarketSentiment(series);
+  assessment.sp500Outlook = buildSp500Outlook(series);
+  assessment.outlook = buildMacroOutlook(series, assessment.blocks, assessment.marketSentiment);
     assessment.marketSentiment.outlook = assessment.outlook.marketSentiment;
     const payload = { fetchedAt: new Date().toISOString(), series, assessment, errors, retrieval,
       sources: [...new Set(series.map(x => ({ name: x.source, url: x.url })).map(x => JSON.stringify(x)))].map(x => JSON.parse(x)) };
@@ -612,7 +666,7 @@ async function loadMacro({ force = false } = {}) {
     // visible i informa del motiu; no presentis una falsa actualització.
     if (process.env.VERCEL && bundled) {
       return {
-        ...bundled,
+        ...attachDerivedAssessment(bundled),
         servedFromCache: true,
         refreshAttemptedAt: new Date().toISOString(),
         refreshError: error.message,
@@ -623,4 +677,4 @@ async function loadMacro({ force = false } = {}) {
   }
 }
 
-module.exports = { loadMacro, SERIES, buildMarketSentiment, buildMacroOutlook, makeSeries, yearOverYear };
+module.exports = { loadMacro, SERIES, buildMarketSentiment, buildMacroOutlook, buildSp500Outlook, makeSeries, yearOverYear };
